@@ -4,15 +4,15 @@
 //
 
 import Foundation
+import UIKit  // Needed for UIImage
 import os.log
-import UIKit // Needed for UIImage
 
 // MARK: - API Models
 
 struct NonceRequest: Codable {
     let walletAddress: String
     let network: String
-    
+
     enum CodingKeys: String, CodingKey {
         case walletAddress = "wallet_address"
         case network
@@ -23,7 +23,7 @@ struct NonceResponse: Codable {
     let nonce: String
     let message: String
     let expiresAt: String
-    
+
     enum CodingKeys: String, CodingKey {
         case nonce
         case message
@@ -36,7 +36,7 @@ struct VerifyRequest: Codable {
     let signature: String
     let nonce: String
     let network: String
-    
+
     enum CodingKeys: String, CodingKey {
         case walletAddress = "wallet_address"
         case signature
@@ -50,7 +50,7 @@ struct VerifyResponse: Codable {
     let userId: String
     let isNewUser: Bool
     let balanceSol: Double
-    
+
     enum CodingKeys: String, CodingKey {
         case accessToken = "access_token"
         case userId = "user_id"
@@ -60,15 +60,28 @@ struct VerifyResponse: Codable {
 }
 
 struct UserData: Codable {
+    let id: String
     let username: String
+    let profilePicUrl: String?
+    let createdAt: String
+    let isActive: Bool
     let wallet: WalletData
+
+    enum CodingKeys: String, CodingKey {
+        case id = "user_id"
+        case username
+        case profilePicUrl = "profile_pic_url"
+        case createdAt = "created_at"
+        case isActive = "is_active"
+        case wallet
+    }
 }
 
 struct WalletData: Codable {
     let address: String
     let network: String
     let balanceSol: Double
-    
+
     enum CodingKeys: String, CodingKey {
         case address
         case network
@@ -84,7 +97,7 @@ struct ConnectRequest: Codable {
     let walletAddress: String
     let phantomSession: String
     let network: String
-    
+
     enum CodingKeys: String, CodingKey {
         case walletAddress = "wallet_address"
         case phantomSession = "phantom_session"
@@ -101,7 +114,7 @@ enum APIError: LocalizedError {
     case serverError(Int, String)
     case unauthorized
     case unknown
-    
+
     var message: String {
         switch self {
         case .invalidURL:
@@ -118,7 +131,7 @@ enum APIError: LocalizedError {
             return "An unknown error occurred"
         }
     }
-    
+
     var errorDescription: String? { message }
 }
 
@@ -126,171 +139,215 @@ enum APIError: LocalizedError {
 
 class APIService {
     static let shared = APIService()
-    
+
     // Daniels lokale Entwicklungs-IP (Mac im WLAN)
     // Bei Änderung: Terminal -> ipconfig getifaddr en0
     private let baseURL = "http://192.168.178.94:8000"
-    
+
     private let logger = Logger(subsystem: "com.aasdf.app", category: "APIService")
     private let decoder: JSONDecoder
     private let encoder: JSONEncoder
     private let session: URLSession
-    
+
     private init() {
         decoder = JSONDecoder()
         encoder = JSONEncoder()
-        
+
         // Konfiguriere URLSession mit längerem Timeout
         let config = URLSessionConfiguration.default
-        config.timeoutIntervalForRequest = 30 // 30 Sekunden für Request
-        config.timeoutIntervalForResource = 60 // 60 Sekunden für Resource
-        config.waitsForConnectivity = true // Warte auf Netzwerk
+        config.timeoutIntervalForRequest = 30  // 30 Sekunden für Request
+        config.timeoutIntervalForResource = 60  // 60 Sekunden für Resource
+        config.waitsForConnectivity = true  // Warte auf Netzwerk
         config.allowsCellularAccess = true
         config.allowsExpensiveNetworkAccess = true
         config.allowsConstrainedNetworkAccess = true
-        
+
         session = URLSession(configuration: config)
     }
-    
+
     // MARK: - Auth Endpoints
-    
-    func connectWallet(walletAddress: String, phantomSession: String, network: String) async throws -> VerifyResponse {
+
+    func connectWallet(walletAddress: String, phantomSession: String, network: String) async throws
+        -> VerifyResponse
+    {
         let endpoint = "\(baseURL)/auth/connect"
-        let body = ConnectRequest(walletAddress: walletAddress, phantomSession: phantomSession, network: network)
-        
+        let body = ConnectRequest(
+            walletAddress: walletAddress, phantomSession: phantomSession, network: network)
+
         return try await post(endpoint: endpoint, body: body)
     }
-    
+
     func getCurrentUser() async throws -> UserData {
         let endpoint = "\(baseURL)/auth/me"
         return try await get(endpoint: endpoint, authenticated: true)
     }
-    
+
     // MARK: - User Endpoints
-    
+
     func fetchMyProfile() async throws -> UserProfile {
-        let endpoint = "\(baseURL)/users/me"
-        return try await get(endpoint: endpoint, authenticated: true)
+        // FIX: Use /auth/me because /users/me returns 500 Internal Server Error
+        // and /auth/me returns the full user profile including wallet data.
+        let userData = try await getCurrentUser()
+
+        // Map UserData (DTO) to UserProfile (Domain Model)
+        return UserProfile(
+            id: userData.id,
+            username: userData.username,
+            profilePicUrl: userData.profilePicUrl,
+            createdAt: userData.createdAt,
+            isActive: userData.isActive,
+            walletAddress: userData.wallet.address
+        )
     }
-    
+
     func updateUsername(_ newName: String) async throws -> UserProfile {
         let endpoint = "\(baseURL)/users/me"
-        let body = UpdateUsernameRequest(username: newName)
-        // PATCH request implementation using existing post logic but with PATCH method
-        // Since existing post() is hardcoded to POST, we'll create a generic request helper or just implement it here manually for simplicity
-        
+
+        // FIX: Ensure username starts with @ as required by backend
+        let formattedName = newName.starts(with: "@") ? newName : "@\(newName)"
+        let body = UpdateUsernameRequest(username: formattedName)
+
         guard let url = URL(string: endpoint) else { throw APIError.invalidURL }
         var request = URLRequest(url: url)
         request.httpMethod = "PATCH"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        
+
         if let token = KeychainHelper.shared.getToken() {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         }
-        
+
         request.httpBody = try encoder.encode(body)
+
+        // The PATCH endpoint returns the updated UserProfile (or UserData structure)
+        // We'll decode it as UserProfile if possible, or UserData and map it.
+        // Assuming backend returns the same structure as GET /users/me (which we know is problematic)
+        // BUT, if PATCH works, it might return the user.
+        // Let's try to decode as UserProfile first.
         return try await execute(request: request)
     }
-    
+
     func deactivateAccount() async throws {
         let endpoint = "\(baseURL)/users/me/deactivate"
         guard let url = URL(string: endpoint) else { throw APIError.invalidURL }
-        
+
         var request = URLRequest(url: url)
         request.httpMethod = "DELETE"
-        
+
         if let token = KeychainHelper.shared.getToken() {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         }
-        
+
         let _: EmptyResponse = try await execute(request: request)
     }
-    
+
     func uploadProfilePic(_ image: UIImage) async throws {
         let endpoint = "\(baseURL)/users/me/profile-pic"
         guard let url = URL(string: endpoint) else { throw APIError.invalidURL }
-        
+
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
-        
+
         let boundary = "Boundary-\(UUID().uuidString)"
-        request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
-        
+        request.setValue(
+            "multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
+
         if let token = KeychainHelper.shared.getToken() {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         }
-        
-        guard let imageData = image.pngData() else {
-            throw APIError.unknown // Image conversion failed
+
+        // FIX: Use JPEG compression for better compatibility and smaller size
+        guard let imageData = image.jpegData(compressionQuality: 0.8) else {
+            throw APIError.unknown  // Image conversion failed
         }
-        
-        request.httpBody = createMultipartBody(data: imageData, boundary: boundary, filename: "profile.png", mimeType: "image/png")
-        
+
+        // FIX: Use .jpg extension and image/jpeg mime type
+        request.httpBody = createMultipartBody(
+            data: imageData, boundary: boundary, filename: "profile.jpg", mimeType: "image/jpeg")
+
         let _: EmptyResponse = try await execute(request: request)
     }
-    
+
     // MARK: - Private Methods
-    
-    private func get<T: Decodable>(endpoint: String, authenticated: Bool = false) async throws -> T {
+
+    private func get<T: Decodable>(endpoint: String, authenticated: Bool = false) async throws -> T
+    {
         guard let url = URL(string: endpoint) else {
             throw APIError.invalidURL
         }
-        
+
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.timeoutInterval = 30
-        
+
         if authenticated, let token = KeychainHelper.shared.getToken() {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         }
-        
+
         return try await execute(request: request)
     }
-    
-    private func post<T: Decodable, B: Encodable>(endpoint: String, body: B, authenticated: Bool = false) async throws -> T {
+
+    private func post<T: Decodable, B: Encodable>(
+        endpoint: String, body: B, authenticated: Bool = false
+    ) async throws -> T {
         guard let url = URL(string: endpoint) else {
             throw APIError.invalidURL
         }
-        
+
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.timeoutInterval = 30
-        
+
         if authenticated, let token = KeychainHelper.shared.getToken() {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         }
-        
+
         request.httpBody = try encoder.encode(body)
-        
+
         return try await execute(request: request)
     }
-    
+
     private func execute<T: Decodable>(request: URLRequest) async throws -> T {
-        logger.info("API Request: \(request.httpMethod ?? "GET") \(request.url?.absoluteString ?? "")")
-        
+        logger.info(
+            "API Request: \(request.httpMethod ?? "GET") \(request.url?.absoluteString ?? "")")
+
         // Debug: Log request body if present
         if let body = request.httpBody, let bodyString = String(data: body, encoding: .utf8) {
             logger.info("Request body: \(bodyString)")
         }
-        
+
         let (data, response): (Data, URLResponse)
-        
+
         do {
             // Verwende die konfigurierte Session statt URLSession.shared
             (data, response) = try await session.data(for: request)
         } catch let error as URLError {
             logger.error("URLError: \(error.code.rawValue) - \(error.localizedDescription)")
-            
+
             // Bessere Fehlermeldungen
             switch error.code {
             case .timedOut:
-                throw APIError.networkError(NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Server nicht erreichbar. Stelle sicher, dass dein Backend läuft und die IP korrekt ist."]))
+                throw APIError.networkError(
+                    NSError(
+                        domain: "", code: -1,
+                        userInfo: [
+                            NSLocalizedDescriptionKey:
+                                "Server nicht erreichbar. Stelle sicher, dass dein Backend läuft und die IP korrekt ist."
+                        ]))
             case .cannotConnectToHost:
-                throw APIError.networkError(NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Kann nicht zum Server verbinden. Prüfe die IP-Adresse und ob Docker läuft."]))
+                throw APIError.networkError(
+                    NSError(
+                        domain: "", code: -1,
+                        userInfo: [
+                            NSLocalizedDescriptionKey:
+                                "Kann nicht zum Server verbinden. Prüfe die IP-Adresse und ob Docker läuft."
+                        ]))
             case .notConnectedToInternet:
-                throw APIError.networkError(NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Keine Internetverbindung."]))
+                throw APIError.networkError(
+                    NSError(
+                        domain: "", code: -1,
+                        userInfo: [NSLocalizedDescriptionKey: "Keine Internetverbindung."]))
             default:
                 throw APIError.networkError(error)
             }
@@ -298,18 +355,18 @@ class APIService {
             logger.error("Network error: \(error.localizedDescription)")
             throw APIError.networkError(error)
         }
-        
+
         guard let httpResponse = response as? HTTPURLResponse else {
             throw APIError.unknown
         }
-        
+
         logger.info("API Response: \(httpResponse.statusCode)")
-        
+
         // Debug: Log response body
         if let responseString = String(data: data, encoding: .utf8) {
             logger.info("Response body: \(responseString)")
         }
-        
+
         switch httpResponse.statusCode {
         case 200...299:
             do {
@@ -318,10 +375,10 @@ class APIService {
                 logger.error("Decoding error: \(error.localizedDescription)")
                 throw APIError.decodingError(error)
             }
-            
+
         case 401:
             throw APIError.unauthorized
-            
+
         default:
             let errorMessage: String
             if let errorResponse = try? decoder.decode(APIErrorResponse.self, from: data) {
@@ -335,20 +392,23 @@ class APIService {
             throw APIError.serverError(httpResponse.statusCode, errorMessage)
         }
     }
-    
+
     // MARK: - Private Helpers
-    
-    private func createMultipartBody(data: Data, boundary: String, filename: String, mimeType: String) -> Data {
+
+    private func createMultipartBody(
+        data: Data, boundary: String, filename: String, mimeType: String
+    ) -> Data {
         var body = Data()
         let lineBreak = "\r\n"
-        
+
         body.append("--\(boundary + lineBreak)")
-        body.append("Content-Disposition: form-data; name=\"file\"; filename=\"\(filename)\"\(lineBreak)")
+        body.append(
+            "Content-Disposition: form-data; name=\"file\"; filename=\"\(filename)\"\(lineBreak)")
         body.append("Content-Type: \(mimeType)\(lineBreak + lineBreak)")
         body.append(data)
         body.append(lineBreak)
         body.append("--\(boundary)--\(lineBreak)")
-        
+
         return body
     }
 }
