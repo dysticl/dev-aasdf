@@ -5,6 +5,7 @@
 
 import Foundation
 import os.log
+import UIKit // Needed for UIImage
 
 // MARK: - API Models
 
@@ -165,6 +166,69 @@ class APIService {
         return try await get(endpoint: endpoint, authenticated: true)
     }
     
+    // MARK: - User Endpoints
+    
+    func fetchMyProfile() async throws -> UserProfile {
+        let endpoint = "\(baseURL)/users/me"
+        return try await get(endpoint: endpoint, authenticated: true)
+    }
+    
+    func updateUsername(_ newName: String) async throws -> UserProfile {
+        let endpoint = "\(baseURL)/users/me"
+        let body = UpdateUsernameRequest(username: newName)
+        // PATCH request implementation using existing post logic but with PATCH method
+        // Since existing post() is hardcoded to POST, we'll create a generic request helper or just implement it here manually for simplicity
+        
+        guard let url = URL(string: endpoint) else { throw APIError.invalidURL }
+        var request = URLRequest(url: url)
+        request.httpMethod = "PATCH"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        
+        if let token = KeychainHelper.shared.getToken() {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+        
+        request.httpBody = try encoder.encode(body)
+        return try await execute(request: request)
+    }
+    
+    func deactivateAccount() async throws {
+        let endpoint = "\(baseURL)/users/me/deactivate"
+        guard let url = URL(string: endpoint) else { throw APIError.invalidURL }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "DELETE"
+        
+        if let token = KeychainHelper.shared.getToken() {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+        
+        let _: EmptyResponse = try await execute(request: request)
+    }
+    
+    func uploadProfilePic(_ image: UIImage) async throws {
+        let endpoint = "\(baseURL)/users/me/profile-pic"
+        guard let url = URL(string: endpoint) else { throw APIError.invalidURL }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        
+        let boundary = "Boundary-\(UUID().uuidString)"
+        request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
+        
+        if let token = KeychainHelper.shared.getToken() {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+        
+        guard let imageData = image.pngData() else {
+            throw APIError.unknown // Image conversion failed
+        }
+        
+        request.httpBody = createMultipartBody(data: imageData, boundary: boundary, filename: "profile.png", mimeType: "image/png")
+        
+        let _: EmptyResponse = try await execute(request: request)
+    }
+    
     // MARK: - Private Methods
     
     private func get<T: Decodable>(endpoint: String, authenticated: Bool = false) async throws -> T {
@@ -269,6 +333,34 @@ class APIService {
             }
             logger.error("Server error \(httpResponse.statusCode): \(errorMessage)")
             throw APIError.serverError(httpResponse.statusCode, errorMessage)
+        }
+    }
+    
+    // MARK: - Private Helpers
+    
+    private func createMultipartBody(data: Data, boundary: String, filename: String, mimeType: String) -> Data {
+        var body = Data()
+        let lineBreak = "\r\n"
+        
+        body.append("--\(boundary + lineBreak)")
+        body.append("Content-Disposition: form-data; name=\"file\"; filename=\"\(filename)\"\(lineBreak)")
+        body.append("Content-Type: \(mimeType)\(lineBreak + lineBreak)")
+        body.append(data)
+        body.append(lineBreak)
+        body.append("--\(boundary)--\(lineBreak)")
+        
+        return body
+    }
+}
+
+// Helper struct for empty responses
+struct EmptyResponse: Codable {}
+
+// Extension to append string to Data
+extension Data {
+    mutating func append(_ string: String) {
+        if let data = string.data(using: .utf8) {
+            append(data)
         }
     }
 }
