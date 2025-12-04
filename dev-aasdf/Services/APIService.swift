@@ -79,6 +79,18 @@ struct APIErrorResponse: Codable {
     let detail: String
 }
 
+struct ConnectRequest: Codable {
+    let walletAddress: String
+    let phantomSession: String
+    let network: String
+    
+    enum CodingKeys: String, CodingKey {
+        case walletAddress = "wallet_address"
+        case phantomSession = "phantom_session"
+        case network
+    }
+}
+
 // MARK: - API Error
 
 enum APIError: LocalizedError {
@@ -114,33 +126,36 @@ enum APIError: LocalizedError {
 class APIService {
     static let shared = APIService()
     
-    private let baseURL = "http://0.0.0.0:8000" // Change to production URL
+    // Daniels lokale Entwicklungs-IP (Mac im WLAN)
+    // Bei Änderung: Terminal -> ipconfig getifaddr en0
+    private let baseURL = "http://192.168.178.94:8000"
+    
     private let logger = Logger(subsystem: "com.aasdf.app", category: "APIService")
     private let decoder: JSONDecoder
     private let encoder: JSONEncoder
+    private let session: URLSession
     
     private init() {
         decoder = JSONDecoder()
         encoder = JSONEncoder()
+        
+        // Konfiguriere URLSession mit längerem Timeout
+        let config = URLSessionConfiguration.default
+        config.timeoutIntervalForRequest = 30 // 30 Sekunden für Request
+        config.timeoutIntervalForResource = 60 // 60 Sekunden für Resource
+        config.waitsForConnectivity = true // Warte auf Netzwerk
+        config.allowsCellularAccess = true
+        config.allowsExpensiveNetworkAccess = true
+        config.allowsConstrainedNetworkAccess = true
+        
+        session = URLSession(configuration: config)
     }
     
     // MARK: - Auth Endpoints
     
-    func requestNonce(walletAddress: String, network: String) async throws -> NonceResponse {
-        let endpoint = "\(baseURL)/auth/nonce"
-        let body = NonceRequest(walletAddress: walletAddress, network: network)
-        
-        return try await post(endpoint: endpoint, body: body)
-    }
-    
-    func verifySignature(walletAddress: String, signature: String, nonce: String, network: String) async throws -> VerifyResponse {
-        let endpoint = "\(baseURL)/auth/verify"
-        let body = VerifyRequest(
-            walletAddress: walletAddress,
-            signature: signature,
-            nonce: nonce,
-            network: network
-        )
+    func connectWallet(walletAddress: String, phantomSession: String, network: String) async throws -> VerifyResponse {
+        let endpoint = "\(baseURL)/auth/connect"
+        let body = ConnectRequest(walletAddress: walletAddress, phantomSession: phantomSession, network: network)
         
         return try await post(endpoint: endpoint, body: body)
     }
@@ -160,6 +175,7 @@ class APIService {
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.timeoutInterval = 30
         
         if authenticated, let token = KeychainHelper.shared.getToken() {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
@@ -176,6 +192,7 @@ class APIService {
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.timeoutInterval = 30
         
         if authenticated, let token = KeychainHelper.shared.getToken() {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
@@ -189,10 +206,30 @@ class APIService {
     private func execute<T: Decodable>(request: URLRequest) async throws -> T {
         logger.info("API Request: \(request.httpMethod ?? "GET") \(request.url?.absoluteString ?? "")")
         
+        // Debug: Log request body if present
+        if let body = request.httpBody, let bodyString = String(data: body, encoding: .utf8) {
+            logger.info("Request body: \(bodyString)")
+        }
+        
         let (data, response): (Data, URLResponse)
         
         do {
-            (data, response) = try await URLSession.shared.data(for: request)
+            // Verwende die konfigurierte Session statt URLSession.shared
+            (data, response) = try await session.data(for: request)
+        } catch let error as URLError {
+            logger.error("URLError: \(error.code.rawValue) - \(error.localizedDescription)")
+            
+            // Bessere Fehlermeldungen
+            switch error.code {
+            case .timedOut:
+                throw APIError.networkError(NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Server nicht erreichbar. Stelle sicher, dass dein Backend läuft und die IP korrekt ist."]))
+            case .cannotConnectToHost:
+                throw APIError.networkError(NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Kann nicht zum Server verbinden. Prüfe die IP-Adresse und ob Docker läuft."]))
+            case .notConnectedToInternet:
+                throw APIError.networkError(NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Keine Internetverbindung."]))
+            default:
+                throw APIError.networkError(error)
+            }
         } catch {
             logger.error("Network error: \(error.localizedDescription)")
             throw APIError.networkError(error)
@@ -203,6 +240,11 @@ class APIService {
         }
         
         logger.info("API Response: \(httpResponse.statusCode)")
+        
+        // Debug: Log response body
+        if let responseString = String(data: data, encoding: .utf8) {
+            logger.info("Response body: \(responseString)")
+        }
         
         switch httpResponse.statusCode {
         case 200...299:
@@ -220,6 +262,8 @@ class APIService {
             let errorMessage: String
             if let errorResponse = try? decoder.decode(APIErrorResponse.self, from: data) {
                 errorMessage = errorResponse.detail
+            } else if let responseString = String(data: data, encoding: .utf8) {
+                errorMessage = responseString
             } else {
                 errorMessage = "Server error"
             }

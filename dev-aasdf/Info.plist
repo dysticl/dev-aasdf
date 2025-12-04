@@ -23,10 +23,22 @@
 		<string>phantom</string>
 	</array>
 
+	<!-- LOCAL NETWORK ACCESS - Required for iOS 14+ -->
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>AASDF needs to connect to your local development server for authentication.</string>
+	
+	<!-- Bonjour services (required for local network) -->
+	<key>NSBonjourServices</key>
+	<array>
+		<string>_http._tcp</string>
+	</array>
+
 	<!-- Development-only network exceptions (remove for production and use HTTPS) -->
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<key>NSAllowsArbitraryLoads</key>
+		<true/>
+		<key>NSAllowsLocalNetworking</key>
 		<true/>
 		<key>NSExceptionDomains</key>
 		<dict>
@@ -38,6 +50,14 @@
 				<true/>
 			</dict>
 			<key>localhost</key>
+			<dict>
+				<key>NSExceptionAllowsInsecureHTTPLoads</key>
+				<true/>
+				<key>NSIncludesSubdomains</key>
+				<true/>
+			</dict>
+			<!-- Lokales Netzwerk (192.168.x.x) -->
+			<key>192.168.178.0</key>
 			<dict>
 				<key>NSExceptionAllowsInsecureHTTPLoads</key>
 				<true/>

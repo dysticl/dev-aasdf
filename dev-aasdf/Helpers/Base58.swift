@@ -9,6 +9,7 @@ import Foundation
 
 enum Base58 {
     private static let alphabet = Array("123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz")
+    private static let base: UInt32 = 58
     private static let alphabetMap: [Character: UInt8] = {
         var map = [Character: UInt8]()
         for (index, char) in alphabet.enumerated() {
@@ -31,47 +32,53 @@ enum Base58 {
             }
         }
         
-        // Allocate enough space in big-endian base58 representation
-        let size = bytes.count * 138 / 100 + 1
-        var b58 = [UInt8](repeating: 0, count: size)
+        // Allocate enough space for the result
+        // log(256) / log(58) ≈ 1.37, so we need at most size * 137/100 + 1
+        let maxSize = bytes.count * 137 / 100 + 1
+        var result = [UInt8](repeating: 0, count: maxSize)
+        var resultLength = 0
         
-        // Process the bytes
+        // Process each byte
         for byte in bytes {
-            var carry = Int(byte)
-            var i = size - 1
+            var carry = UInt32(byte)
+            var j = 0
             
-            while carry != 0 || i >= size - (bytes.count - leadingZeros) {
-                carry += 256 * Int(b58[i])
-                b58[i] = UInt8(carry % 58)
-                carry /= 58
+            // Apply "b58 = b58 * 256 + byte"
+            var i = maxSize - 1
+            while i >= 0 && (carry != 0 || j < resultLength) {
+                carry += 256 * UInt32(result[i])
+                result[i] = UInt8(carry % base)
+                carry /= base
+                j += 1
                 if i > 0 {
                     i -= 1
                 } else {
                     break
                 }
             }
+            resultLength = j
         }
         
-        // Skip leading zeros in base58 result
-        var startIndex = 0
-        while startIndex < size && b58[startIndex] == 0 {
+        // Skip leading zeros in result
+        var startIndex = maxSize - resultLength
+        while startIndex < maxSize && result[startIndex] == 0 {
             startIndex += 1
         }
         
-        // Build the result string
-        var result = String(repeating: "1", count: leadingZeros)
-        for i in startIndex..<size {
-            result.append(alphabet[Int(b58[i])])
+        // Build the result string with leading '1's for each leading zero byte
+        var encoded = String(repeating: "1", count: leadingZeros)
+        for i in startIndex..<maxSize {
+            encoded.append(alphabet[Int(result[i])])
         }
         
-        return result
+        return encoded
     }
     
     /// Decode Base58 string to bytes
     static func decode(_ string: String) -> [UInt8]? {
         guard !string.isEmpty else { return [] }
         
-        // Count leading '1's (zeros in base58)
+        // Count leading '1's (represent leading zero bytes)
         var leadingOnes = 0
         for char in string {
             if char == "1" {
@@ -82,8 +89,10 @@ enum Base58 {
         }
         
         // Allocate enough space
-        let size = string.count * 733 / 1000 + 1
-        var b256 = [UInt8](repeating: 0, count: size)
+        // log(58) / log(256) ≈ 0.73, so we need at most size * 733/1000 + 1
+        let maxSize = string.count * 733 / 1000 + 1
+        var result = [UInt8](repeating: 0, count: maxSize)
+        var resultLength = 0
         
         // Process each character
         for char in string {
@@ -91,32 +100,36 @@ enum Base58 {
                 return nil // Invalid character
             }
             
-            var carry = Int(value)
-            var i = size - 1
+            var carry = UInt32(value)
+            var j = 0
             
-            while carry != 0 || i >= size - (string.count - leadingOnes) {
-                carry += 58 * Int(b256[i])
-                b256[i] = UInt8(carry % 256)
+            // Apply "b256 = b256 * 58 + value"
+            var i = maxSize - 1
+            while i >= 0 && (carry != 0 || j < resultLength) {
+                carry += 58 * UInt32(result[i])
+                result[i] = UInt8(carry % 256)
                 carry /= 256
+                j += 1
                 if i > 0 {
                     i -= 1
                 } else {
                     break
                 }
             }
+            resultLength = j
         }
         
-        // Skip leading zeros in b256
-        var startIndex = 0
-        while startIndex < size && b256[startIndex] == 0 {
+        // Skip leading zeros in result
+        var startIndex = maxSize - resultLength
+        while startIndex < maxSize && result[startIndex] == 0 {
             startIndex += 1
         }
         
-        // Build result with leading zeros
-        var result = [UInt8](repeating: 0, count: leadingOnes)
-        result.append(contentsOf: b256[startIndex...])
+        // Build result with leading zero bytes
+        var decoded = [UInt8](repeating: 0, count: leadingOnes)
+        decoded.append(contentsOf: result[startIndex..<maxSize])
         
-        return result
+        return decoded
     }
 }
 
