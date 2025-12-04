@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		162898C8E456BD90F64A55BF /* Pods_dev_aasdf.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 8B0A7255292A908580FBFCC2 /* Pods_dev_aasdf.framework */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		65F3E15E2EE0EA5C002909B5 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -24,14 +28,30 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		1A042CA76AC89097BB2A0B88 /* Pods-dev-aasdf.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-dev-aasdf.release.xcconfig"; path = "Target Support Files/Pods-dev-aasdf/Pods-dev-aasdf.release.xcconfig"; sourceTree = "<group>"; };
 		65F3E1502EE0EA5B002909B5 /* dev-aasdf.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "dev-aasdf.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		65F3E15D2EE0EA5C002909B5 /* dev-aasdfTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "dev-aasdfTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		65F3E1672EE0EA5C002909B5 /* dev-aasdfUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "dev-aasdfUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		8B0A7255292A908580FBFCC2 /* Pods_dev_aasdf.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_dev_aasdf.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		A866A02B604C5D6760F28D4C /* Pods-dev-aasdf.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-dev-aasdf.debug.xcconfig"; path = "Target Support Files/Pods-dev-aasdf/Pods-dev-aasdf.debug.xcconfig"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		65F3E18B2EE0EDFD002909B5 /* Exceptions for "dev-aasdf" folder in "dev-aasdf" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 65F3E14F2EE0EA5B002909B5 /* dev-aasdf */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		65F3E1522EE0EA5B002909B5 /* dev-aasdf */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				65F3E18B2EE0EDFD002909B5 /* Exceptions for "dev-aasdf" folder in "dev-aasdf" target */,
+			);
 			path = "dev-aasdf";
 			sourceTree = "<group>";
 		};
@@ -52,6 +72,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				162898C8E456BD90F64A55BF /* Pods_dev_aasdf.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -72,6 +93,14 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		2F72B15B65E0893EFF6F2AD7 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				8B0A7255292A908580FBFCC2 /* Pods_dev_aasdf.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 		65F3E1472EE0EA5B002909B5 = {
 			isa = PBXGroup;
 			children = (
@@ -79,6 +108,8 @@
 				65F3E1602EE0EA5C002909B5 /* dev-aasdfTests */,
 				65F3E16A2EE0EA5C002909B5 /* dev-aasdfUITests */,
 				65F3E1512EE0EA5B002909B5 /* Products */,
+				DF41A3CB371CCD33B2F96E96 /* Pods */,
+				2F72B15B65E0893EFF6F2AD7 /* Frameworks */,
 			);
 			sourceTree = "<group>";
 		};
@@ -92,6 +123,15 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
+		DF41A3CB371CCD33B2F96E96 /* Pods */ = {
+			isa = PBXGroup;
+			children = (
+				A866A02B604C5D6760F28D4C /* Pods-dev-aasdf.debug.xcconfig */,
+				1A042CA76AC89097BB2A0B88 /* Pods-dev-aasdf.release.xcconfig */,
+			);
+			path = Pods;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -99,9 +139,11 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 65F3E1712EE0EA5C002909B5 /* Build configuration list for PBXNativeTarget "dev-aasdf" */;
 			buildPhases = (
+				92045255E17DF97456354980 /* [CP] Check Pods Manifest.lock */,
 				65F3E14C2EE0EA5B002909B5 /* Sources */,
 				65F3E14D2EE0EA5B002909B5 /* Frameworks */,
 				65F3E14E2EE0EA5B002909B5 /* Resources */,
+				B52510184D7A71BF583713F6 /* [CP] Embed Pods Frameworks */,
 			);
 			buildRules = (
 			);
@@ -111,8 +153,6 @@
 				65F3E1522EE0EA5B002909B5 /* dev-aasdf */,
 			);
 			name = "dev-aasdf";
-			packageProductDependencies = (
-			);
 			productName = "dev-aasdf";
 			productReference = 65F3E1502EE0EA5B002909B5 /* dev-aasdf.app */;
 			productType = "com.apple.product-type.application";
@@ -134,8 +174,6 @@
 				65F3E1602EE0EA5C002909B5 /* dev-aasdfTests */,
 			);
 			name = "dev-aasdfTests";
-			packageProductDependencies = (
-			);
 			productName = "dev-aasdfTests";
 			productReference = 65F3E15D2EE0EA5C002909B5 /* dev-aasdfTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
@@ -157,8 +195,6 @@
 				65F3E16A2EE0EA5C002909B5 /* dev-aasdfUITests */,
 			);
 			name = "dev-aasdfUITests";
-			packageProductDependencies = (
-			);
 			productName = "dev-aasdfUITests";
 			productReference = 65F3E1672EE0EA5C002909B5 /* dev-aasdfUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
@@ -230,6 +266,52 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		92045255E17DF97456354980 /* [CP] Check Pods Manifest.lock */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"${PODS_PODFILE_DIR_PATH}/Podfile.lock",
+				"${PODS_ROOT}/Manifest.lock",
+			);
+			name = "[CP] Check Pods Manifest.lock";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(DERIVED_FILE_DIR)/Pods-dev-aasdf-checkManifestLockResult.txt",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
+			showEnvVarsInLog = 0;
+		};
+		B52510184D7A71BF583713F6 /* [CP] Embed Pods Frameworks */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-dev-aasdf/Pods-dev-aasdf-frameworks-${CONFIGURATION}-input-files.xcfilelist",
+			);
+			inputPaths = (
+			);
+			name = "[CP] Embed Pods Frameworks";
+			outputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-dev-aasdf/Pods-dev-aasdf-frameworks-${CONFIGURATION}-output-files.xcfilelist",
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-dev-aasdf/Pods-dev-aasdf-frameworks.sh\"\n";
+			showEnvVarsInLog = 0;
+		};
+/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		65F3E14C2EE0EA5B002909B5 /* Sources */ = {
@@ -392,6 +474,7 @@
 		};
 		65F3E1722EE0EA5C002909B5 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = A866A02B604C5D6760F28D4C /* Pods-dev-aasdf.debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -399,7 +482,9 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 33SL86SV8F;
 				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "dev-aasdf/Info.plist";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -424,6 +509,7 @@
 		};
 		65F3E1732EE0EA5C002909B5 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 1A042CA76AC89097BB2A0B88 /* Pods-dev-aasdf.release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -431,7 +517,9 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 33SL86SV8F;
 				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "dev-aasdf/Info.plist";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;

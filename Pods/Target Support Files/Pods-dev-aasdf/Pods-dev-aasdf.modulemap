@@ -1,0 +1,6 @@
+framework module Pods_dev_aasdf {
+  umbrella header "Pods-dev-aasdf-umbrella.h"
+
+  export *
+  module * { export * }
+}

@@ -5,6 +5,8 @@
 
 import Foundation
 import SwiftUI
+import Combine
+import class Sodium.Sodium // Explicit import to avoid shadowing warning
 import os.log
 
 @MainActor
@@ -24,6 +26,12 @@ class AuthViewModel: ObservableObject {
     private var pendingNonce: String?
     private var pendingWalletAddress: String?
     private let network = "devnet" // Change to "mainnet" for production
+    
+    // Sodium for XSalsa20-Poly1305 encryption
+    private let sodium = Sodium()
+    private var keyPair: Box.KeyPair?
+    private var phantomPublicKey: [UInt8]?
+    private var session: String?
     
     // MARK: - Public Methods
     
@@ -55,15 +63,14 @@ class AuthViewModel: ObservableObject {
         isLoading = true
         errorMessage = nil
         
-        do {
-            // For deeplink flow, we'll request nonce after getting wallet address from Phantom
-            // First, open Phantom to connect
-            openPhantomConnect()
-        } catch {
-            logger.error("Failed to initiate connection: \(error.localizedDescription)")
-            showErrorAlert(error.localizedDescription)
-            isLoading = false
+        // Generate new keypair for this session using Sodium
+        guard let kp = sodium.box.keyPair() else {
+            showErrorAlert("Failed to initialize crypto library")
+            return
         }
+        self.keyPair = kp
+        
+        openPhantomConnect()
     }
     
     /// Handle deeplink callback from Phantom
@@ -95,6 +102,9 @@ class AuthViewModel: ObservableObject {
         isAuthenticated = false
         pendingNonce = nil
         pendingWalletAddress = nil
+        keyPair = nil
+        phantomPublicKey = nil
+        session = nil
         logger.info("User logged out")
     }
     
@@ -106,8 +116,17 @@ class AuthViewModel: ObservableObject {
     }
     
     private func openPhantomConnect() {
+        guard let kp = keyPair else {
+            showErrorAlert("Keys not initialized")
+            isLoading = false
+            return
+        }
+        
         let appURL = "aasdf"
         let cluster = network
+        
+        // Get public key as base58 string
+        let publicKeyBase58 = Base58.encode(kp.publicKey)
         
         var components = URLComponents()
         components.scheme = "phantom"
@@ -115,7 +134,7 @@ class AuthViewModel: ObservableObject {
         components.path = "/connect"
         components.queryItems = [
             URLQueryItem(name: "app_url", value: "https://aasdf.app"),
-            URLQueryItem(name: "dapp_encryption_public_key", value: ""), // Not needed for basic flow
+            URLQueryItem(name: "dapp_encryption_public_key", value: publicKeyBase58),
             URLQueryItem(name: "cluster", value: cluster),
             URLQueryItem(name: "redirect_link", value: "\(appURL)://onConnect")
         ]
@@ -139,32 +158,79 @@ class AuthViewModel: ObservableObject {
         
         // Check for error
         if let errorCode = params.first(where: { $0.name == "errorCode" })?.value {
-            let errorMsg = params.first(where: { $0.name == "errorMessage" })?.value ?? "Connection failed"
+            let errorMsg = params.first(where: { $0.name == "errorMessage" })?.value?.removingPercentEncoding ?? "Connection failed"
             logger.error("Phantom connect error: \(errorCode) - \(errorMsg)")
             showErrorAlert(errorMsg)
             isLoading = false
             return
         }
         
-        // Get public key (wallet address)
-        guard let publicKey = params.first(where: { $0.name == "phantom_encryption_public_key" })?.value else {
-            // Try alternative parameter name
-            if let pubKey = params.first(where: { $0.name == "public_key" })?.value {
-                pendingWalletAddress = pubKey
-            } else {
-                showErrorAlert("No wallet address returned")
-                isLoading = false
-                return
-            }
+        // Get Phantom's public key for encryption
+        guard let phantomPubKeyBase58 = params.first(where: { $0.name == "phantom_encryption_public_key" })?.value,
+              let phantomPubKeyBytes = Base58.decode(phantomPubKeyBase58),
+              phantomPubKeyBytes.count == 32 else {
+            showErrorAlert("Invalid Phantom public key")
+            isLoading = false
             return
         }
         
-        pendingWalletAddress = publicKey
-        logger.info("Connected wallet: \(publicKey)")
+        // Get nonce for decryption
+        guard let nonceBase58 = params.first(where: { $0.name == "nonce" })?.value,
+              let nonceBytes = Base58.decode(nonceBase58) else {
+            showErrorAlert("Missing nonce from Phantom")
+            isLoading = false
+            return
+        }
         
-        // Now request nonce from backend and prompt for signature
-        Task {
-            await requestNonceAndSign()
+        // Get encrypted data
+        guard let dataBase58 = params.first(where: { $0.name == "data" })?.value,
+              let encryptedData = Base58.decode(dataBase58) else {
+            showErrorAlert("Missing encrypted data from Phantom")
+            isLoading = false
+            return
+        }
+        
+        // Store Phantom's public key
+        self.phantomPublicKey = phantomPubKeyBytes
+        
+        // Decrypt using Sodium
+        guard let kp = self.keyPair,
+              let decryptedBytes = sodium.box.open(
+                authenticatedCipherText: encryptedData,
+                senderPublicKey: phantomPubKeyBytes,
+                recipientSecretKey: kp.secretKey,
+                nonce: nonceBytes
+              ) else {
+            logger.error("Decryption failed")
+            showErrorAlert("Failed to decrypt connection data")
+            isLoading = false
+            return
+        }
+        
+        do {
+            let decryptedData = Data(decryptedBytes)
+            
+            // Parse the decrypted JSON
+            guard let json = try JSONSerialization.jsonObject(with: decryptedData) as? [String: Any],
+                  let publicKey = json["public_key"] as? String,
+                  let sessionString = json["session"] as? String else {
+                throw CryptoError.decryptionFailed
+            }
+            
+            pendingWalletAddress = publicKey
+            session = sessionString
+            
+            logger.info("Connected wallet: \(publicKey)")
+            
+            // Now request nonce from backend and prompt for signature
+            Task {
+                await requestNonceAndSign()
+            }
+            
+        } catch {
+            logger.error("Failed to process connect callback: \(error.localizedDescription)")
+            showErrorAlert("Failed to establish secure connection: \(error.localizedDescription)")
+            isLoading = false
         }
     }
     
@@ -192,35 +258,70 @@ class AuthViewModel: ObservableObject {
     }
     
     private func openPhantomSignMessage(message: String) {
+        guard let kp = keyPair,
+              let phantomKey = phantomPublicKey,
+              let sessionString = session else {
+            showErrorAlert("Missing session data")
+            isLoading = false
+            return
+        }
+        
         let appURL = "aasdf"
         
-        // Base64 encode the message
-        guard let messageData = message.data(using: .utf8) else {
-            showErrorAlert("Failed to encode message")
-            isLoading = false
-            return
-        }
-        let base64Message = messageData.base64EncodedString()
-        
-        var components = URLComponents()
-        components.scheme = "phantom"
-        components.host = "v1"
-        components.path = "/signMessage"
-        components.queryItems = [
-            URLQueryItem(name: "message", value: base64Message),
-            URLQueryItem(name: "cluster", value: network),
-            URLQueryItem(name: "redirect_link", value: "\(appURL)://onSignMessage"),
-            URLQueryItem(name: "display", value: "utf8")
+        // Create payload to encrypt
+        let payload: [String: Any] = [
+            "message": Data(message.utf8).base58EncodedString(),
+            "session": sessionString,
+            "display": "utf8"
         ]
         
-        guard let url = components.url else {
-            showErrorAlert("Failed to create sign URL")
+        do {
+            let payloadData = try JSONSerialization.data(withJSONObject: payload)
+            
+            // Generate random nonce (24 bytes)
+            guard let nonce = sodium.randomBytes.buf(length: 24) else {
+                showErrorAlert("Failed to generate nonce")
+                return
+            }
+            
+            // Encrypt using Sodium
+            guard let encryptedBytes = sodium.box.seal(
+                message: [UInt8](payloadData),
+                recipientPublicKey: phantomKey,
+                senderSecretKey: kp.secretKey,
+                nonce: nonce
+            ) else {
+                showErrorAlert("Encryption failed")
+                return
+            }
+            
+            let publicKeyBase58 = Base58.encode(kp.publicKey)
+            
+            var components = URLComponents()
+            components.scheme = "phantom"
+            components.host = "v1"
+            components.path = "/signMessage"
+            components.queryItems = [
+                URLQueryItem(name: "dapp_encryption_public_key", value: publicKeyBase58),
+                URLQueryItem(name: "nonce", value: Base58.encode(nonce)),
+                URLQueryItem(name: "payload", value: Base58.encode(encryptedBytes)),
+                URLQueryItem(name: "redirect_link", value: "\(appURL)://onSignMessage")
+            ]
+            
+            guard let url = components.url else {
+                showErrorAlert("Failed to create sign URL")
+                isLoading = false
+                return
+            }
+            
+            logger.info("Opening Phantom for signing")
+            UIApplication.shared.open(url)
+            
+        } catch {
+            logger.error("Failed to encrypt sign request: \(error.localizedDescription)")
+            showErrorAlert("Failed to prepare signature request")
             isLoading = false
-            return
         }
-        
-        logger.info("Opening Phantom for signing")
-        UIApplication.shared.open(url)
     }
     
     private func handleSignMessageCallback(components: URLComponents) {
@@ -232,24 +333,57 @@ class AuthViewModel: ObservableObject {
         
         // Check for error
         if let errorCode = params.first(where: { $0.name == "errorCode" })?.value {
-            let errorMsg = params.first(where: { $0.name == "errorMessage" })?.value ?? "Signing failed"
+            let errorMsg = params.first(where: { $0.name == "errorMessage" })?.value?.removingPercentEncoding ?? "Signing failed"
             logger.error("Phantom sign error: \(errorCode) - \(errorMsg)")
             showErrorAlert(errorMsg)
             isLoading = false
             return
         }
         
-        // Get signature (base58 encoded)
-        guard let signature = params.first(where: { $0.name == "signature" })?.value else {
-            showErrorAlert("No signature returned")
+        // Get nonce and encrypted data
+        guard let nonceBase58 = params.first(where: { $0.name == "nonce" })?.value,
+              let nonceBytes = Base58.decode(nonceBase58),
+              let dataBase58 = params.first(where: { $0.name == "data" })?.value,
+              let encryptedData = Base58.decode(dataBase58) else {
+            showErrorAlert("Missing signature data")
             isLoading = false
             return
         }
         
-        logger.info("Received signature, verifying with backend")
+        // Decrypt using Sodium
+        guard let kp = self.keyPair,
+              let phantomKey = self.phantomPublicKey,
+              let decryptedBytes = sodium.box.open(
+                authenticatedCipherText: encryptedData,
+                senderPublicKey: phantomKey,
+                recipientSecretKey: kp.secretKey,
+                nonce: nonceBytes
+              ) else {
+            logger.error("Decryption failed")
+            showErrorAlert("Failed to decrypt signature")
+            isLoading = false
+            return
+        }
         
-        Task {
-            await verifySignature(signature: signature)
+        do {
+            let decryptedData = Data(decryptedBytes)
+            
+            // Parse the signature
+            guard let json = try JSONSerialization.jsonObject(with: decryptedData) as? [String: Any],
+                  let signatureBase58 = json["signature"] as? String else {
+                throw CryptoError.decryptionFailed
+            }
+            
+            logger.info("Received signature, verifying with backend")
+            
+            Task {
+                await verifySignature(signature: signatureBase58)
+            }
+            
+        } catch {
+            logger.error("Failed to parse signature: \(error.localizedDescription)")
+            showErrorAlert("Failed to process signature")
+            isLoading = false
         }
     }
     
@@ -310,6 +444,24 @@ class AuthViewModel: ObservableObject {
         // Auto-hide after 3 seconds
         DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
             self.showWelcomeToast = false
+        }
+    }
+}
+
+// MARK: - Crypto Errors
+
+enum CryptoError: LocalizedError {
+    case keyGenerationFailed
+    case encryptionFailed
+    case decryptionFailed
+    case missingSharedSecret
+    
+    var errorDescription: String? {
+        switch self {
+        case .keyGenerationFailed: return "Failed to generate encryption keys"
+        case .encryptionFailed: return "Failed to encrypt data"
+        case .decryptionFailed: return "Failed to decrypt data"
+        case .missingSharedSecret: return "Missing shared secret"
         }
     }
 }
