@@ -189,11 +189,17 @@ class APIService {
         // and /auth/me returns the full user profile including wallet data.
         let userData = try await getCurrentUser()
 
+        // FIX: Ensure profile picture URL is absolute
+        var finalProfilePicUrl = userData.profilePicUrl
+        if let url = finalProfilePicUrl, url.hasPrefix("/") {
+            finalProfilePicUrl = "\(baseURL)\(url)"
+        }
+
         // Map UserData (DTO) to UserProfile (Domain Model)
         return UserProfile(
             id: userData.id,
             username: userData.username,
-            profilePicUrl: userData.profilePicUrl,
+            profilePicUrl: finalProfilePicUrl,
             createdAt: userData.createdAt,
             isActive: userData.isActive,
             walletAddress: userData.wallet.address
