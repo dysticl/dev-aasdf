@@ -273,6 +273,28 @@ class APIService {
         let _: EmptyResponse = try await execute(request: request)
     }
 
+    // MARK: - Strength Endpoints
+
+    func fetchTodayStrength() async throws -> TodayStrengthResponse {
+        let endpoint = "\(baseURL)/strength/today"
+        return try await get(endpoint: endpoint, authenticated: true)
+    }
+
+    func fetchTodayIntelligence() async throws -> TodayIntelligenceResponse {
+        let endpoint = "\(baseURL)/intelligence/today"
+        return try await get(endpoint: endpoint, authenticated: true)
+    }
+
+    func fetchTodayHealth() async throws -> TodayHealthResponse {
+        let endpoint = "\(baseURL)/health/today"
+        return try await get(endpoint: endpoint, authenticated: true)
+    }
+
+    func fetchTodayDiscipline() async throws -> TodayDisciplineResponse {
+        let endpoint = "\(baseURL)/discipline/today"
+        return try await get(endpoint: endpoint, authenticated: true)
+    }
+
     // MARK: - Private Methods
 
     private func get<T: Decodable>(endpoint: String, authenticated: Bool = false) async throws -> T
