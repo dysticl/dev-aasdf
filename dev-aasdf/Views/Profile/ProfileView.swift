@@ -2,6 +2,8 @@
 //  ProfileView.swift
 //  dev-aasdf
 //
+//  Solo Leveling Profile View with Liquid Glass design
+//
 
 import SwiftUI
 
@@ -11,224 +13,41 @@ struct ProfileView: View {
     @FocusState private var isUsernameFocused: Bool
 
     var body: some View {
-        ZStack {
-            // Background
-            Color.black.ignoresSafeArea()
+        NavigationStack {
+            ZStack {
+                // Background with Ambient Glows
+                AmbientGlowBackground(
+                    primaryColor: SoloColors.hunterPurple,
+                    secondaryColor: SoloColors.electricBlue,
+                    tertiaryColor: SoloColors.xpGold
+                )
 
-            // Ambient Glow
-            Circle()
-                .fill(Color.blue.opacity(0.1))
-                .blur(radius: 100)
-                .offset(x: 100, y: -200)
+                if viewModel.isLoading && viewModel.profile == nil {
+                    ProgressView()
+                        .tint(.white)
+                } else {
+                    ScrollView {
+                        VStack(spacing: DesignSystem.Spacing.xxl) {
+                            profileHeader
+                            statsRow
+                            infoSection
 
-            if viewModel.isLoading && viewModel.profile == nil {
-                ProgressView()
-                    .tint(.white)
-            } else {
-                ScrollView {
-                    VStack(spacing: 30) {
-                        // MARK: - Profile Header
-                        VStack(spacing: 20) {
-                            // Profile Picture
-                            ZStack {
-                                Circle()
-                                    .stroke(
-                                        LinearGradient(
-                                            colors: [.blue.opacity(0.5), .purple.opacity(0.5)],
-                                            startPoint: .topLeading,
-                                            endPoint: .bottomTrailing
-                                        ),
-                                        lineWidth: 2
-                                    )
-                                    .frame(width: 124, height: 124)
+                            Spacer(minLength: 40)
 
-                                if let urlString = viewModel.profile?.profilePicUrl,
-                                    let url = URL(string: urlString)
-                                {
-                                    AsyncImage(url: url) { phase in
-                                        switch phase {
-                                        case .empty:
-                                            ProgressView().tint(.white)
-                                        case .success(let image):
-                                            image
-                                                .resizable()
-                                                .aspectRatio(contentMode: .fill)
-                                        case .failure:
-                                            Image(systemName: "person.crop.circle.fill")
-                                                .resizable()
-                                                .foregroundColor(.gray)
-                                        @unknown default:
-                                            EmptyView()
-                                        }
-                                    }
-                                    .frame(width: 120, height: 120)
-                                    .clipShape(Circle())
-                                    .id(urlString)  // Force reload when URL changes (cache busting)
-                                } else {
-                                    Image(systemName: "person.crop.circle.fill")
-                                        .resizable()
-                                        .foregroundColor(.gray)
-                                        .frame(width: 120, height: 120)
-                                }
-
-                                // Edit Button
-                                Button(action: { viewModel.showActionSheet = true }) {
-                                    ZStack {
-                                        Circle()
-                                            .fill(.ultraThinMaterial)
-                                            .frame(width: 36, height: 36)
-                                            .overlay(
-                                                Circle().stroke(
-                                                    Color.white.opacity(0.2), lineWidth: 1)
-                                            )
-                                        Image(systemName: "camera.fill")
-                                            .foregroundColor(.white)
-                                            .font(.system(size: 14))
-                                    }
-                                }
-                                .offset(x: 40, y: 40)
-                            }
-
-                            // Username / Codename
-                            VStack(spacing: 8) {
-                                Text("CODENAME")
-                                    .font(.caption)
-                                    .fontWeight(.bold)
-                                    .foregroundColor(.gray)
-                                    .tracking(2)
-
-                                HStack {
-                                    TextField("Username", text: $viewModel.username)
-                                        .multilineTextAlignment(.center)
-                                        .font(.system(size: 24, weight: .bold))
-                                        .foregroundColor(.white)
-                                        .autocapitalization(.none)
-                                        .disableAutocorrection(true)
-                                        .focused($isUsernameFocused)
-                                        .submitLabel(.done)
-
-                                    if viewModel.isSaving {
-                                        ProgressView().tint(.white)
-                                            .scaleEffect(0.8)
-                                    } else if viewModel.username != viewModel.profile?.username
-                                        && !viewModel.username.isEmpty
-                                    {
-                                        Button(action: {
-                                            isUsernameFocused = false
-                                            Task { await viewModel.updateUsername() }
-                                        }) {
-                                            Image(systemName: "checkmark.circle.fill")
-                                                .foregroundColor(.green)
-                                                .font(.title3)
-                                        }
-                                    }
-                                }
-                            }
+                            dangerZone
                         }
-                        .padding(.top, 20)
-
-                        // MARK: - Stats Row
-                        HStack(spacing: 12) {
-                            StatCardView(
-                                title: "Intel",
-                                value: viewModel.intelligenceData.map {
-                                    if let score = $0.intelligenceTotalScore {
-                                        return String(Int(score))
-                                    } else {
-                                        return "—"
-                                    }
-                                } ?? "—",
-                                accentColor: .blue,
-                                isLoading: viewModel.intelligenceData == nil && viewModel.isLoading
-                            )
-
-                            StatCardView(
-                                title: "Strength",
-                                value: viewModel.strengthData.map {
-                                    String(Int($0.strengthTotalScore))
-                                } ?? "—",
-                                accentColor: .red,
-                                isLoading: viewModel.strengthData == nil && viewModel.isLoading
-                            )
-
-                            StatCardView(
-                                title: "Discipline",
-                                value: viewModel.disciplineData.map {
-                                    if let score = $0.disciplineTotalScore {
-                                        return String(Int(score))
-                                    } else {
-                                        return "—"
-                                    }
-                                } ?? "—",
-                                accentColor: .purple,
-                                isLoading: viewModel.disciplineData == nil && viewModel.isLoading
-                            )
-
-                            StatCardView(
-                                title: "Health",
-                                value: viewModel.healthData.map {
-                                    if let score = $0.healthTotalScore {
-                                        return String(Int(score))
-                                    } else {
-                                        return "—"
-                                    }
-                                } ?? "—",
-                                accentColor: .green,
-                                isLoading: viewModel.healthData == nil && viewModel.isLoading
-                            )
-                        }
-                        .padding(.horizontal)
-
-                        // MARK: - Info Section
-                        VStack(spacing: 16) {
-                            InfoRow(
-                                title: "MEMBER SINCE",
-                                value: viewModel.profile?.formattedJoinDate ?? "Loading...")
-
-                            Divider().background(Color.white.opacity(0.1))
-
-                            Button(action: {
-                                if let address = viewModel.profile?.walletAddress {
-                                    UIPasteboard.general.string = address
-                                    // Optional: Show toast
-                                }
-                            }) {
-                                InfoRow(
-                                    title: "WALLET ADDRESS",
-                                    value: viewModel.shortAddress(viewModel.profile?.walletAddress),
-                                    icon: "doc.on.doc")
-                            }
-                        }
-                        .padding(20)
-                        .glassCard(cornerRadius: 24)
-                        .padding(.horizontal)
-
-                        Spacer(minLength: 40)
-
-                        // MARK: - Danger Zone
-                        Button(action: { viewModel.showDeleteConfirmation = true }) {
-                            Text("Deactivate Account")
-                                .font(.system(size: 14, weight: .semibold))
-                                .foregroundColor(.red.opacity(0.8))
-                                .padding()
-                                .background(
-                                    Capsule()
-                                        .stroke(Color.red.opacity(0.3), lineWidth: 1)
-                                )
-                        }
-                        .padding(.bottom, 40)
+                        .padding(.bottom, 140)  // Space for tab bar
+                    }
+                    .refreshable {
+                        await viewModel.reloadProfile()
                     }
                 }
-                .refreshable {
-                    await viewModel.reloadProfile()
-                }
             }
+            .navigationTitle("Profile")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(.hidden, for: .navigationBar)
         }
-        .navigationTitle("Profile")
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbarBackground(.hidden, for: .navigationBar)
         .task {
-            // Only load if not already loaded to prevent flickering on re-appear
             if viewModel.profile == nil {
                 await viewModel.loadData()
             }
@@ -267,19 +86,291 @@ struct ProfileView: View {
             Text("This action cannot be undone. You will be logged out immediately.")
         }
     }
+
+    // MARK: - Profile Header
+
+    private var profileHeader: some View {
+        VStack(spacing: DesignSystem.Spacing.xl) {
+            // Profile Picture with Gradient Border
+            ZStack {
+                // Animated gradient border
+                Circle()
+                    .stroke(
+                        AngularGradient(
+                            colors: [
+                                SoloColors.electricBlue,
+                                SoloColors.hunterPurple,
+                                SoloColors.xpGold,
+                                SoloColors.electricBlue,
+                            ],
+                            center: .center
+                        ),
+                        lineWidth: 3
+                    )
+                    .frame(width: 130, height: 130)
+                    .shadow(color: SoloColors.electricBlue.opacity(0.4), radius: 15)
+
+                if let urlString = viewModel.profile?.profilePicUrl,
+                    let url = URL(string: urlString)
+                {
+                    AsyncImage(url: url) { phase in
+                        switch phase {
+                        case .empty:
+                            ProgressView().tint(.white)
+                        case .success(let image):
+                            image
+                                .resizable()
+                                .aspectRatio(contentMode: .fill)
+                        case .failure:
+                            Image(systemName: "person.fill")
+                                .resizable()
+                                .foregroundColor(SoloColors.textTertiary)
+                                .padding(30)
+                        @unknown default:
+                            EmptyView()
+                        }
+                    }
+                    .frame(width: 120, height: 120)
+                    .clipShape(Circle())
+                    .id(urlString)
+                } else {
+                    Circle()
+                        .fill(.ultraThinMaterial)
+                        .frame(width: 120, height: 120)
+                        .overlay(
+                            Image(systemName: "person.fill")
+                                .resizable()
+                                .foregroundColor(SoloColors.textTertiary)
+                                .padding(30)
+                        )
+                }
+
+                // Camera Button
+                Button(action: { viewModel.showActionSheet = true }) {
+                    ZStack {
+                        Circle()
+                            .fill(.ultraThinMaterial)
+                            .frame(width: 40, height: 40)
+                            .overlay(
+                                Circle().stroke(Color.white.opacity(0.2), lineWidth: 1)
+                            )
+                            .shadow(color: .black.opacity(0.3), radius: 5)
+
+                        Image(systemName: "camera.fill")
+                            .foregroundColor(.white)
+                            .font(.system(size: 16))
+                    }
+                }
+                .offset(x: 45, y: 45)
+            }
+            .padding(.top, DesignSystem.Spacing.xl)
+
+            // Username / Codename
+            VStack(spacing: DesignSystem.Spacing.sm) {
+                Text("CODENAME")
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundColor(SoloColors.textTertiary)
+                    .tracking(2)
+
+                HStack(spacing: DesignSystem.Spacing.sm) {
+                    TextField("Username", text: $viewModel.username)
+                        .multilineTextAlignment(.center)
+                        .font(.system(size: 26, weight: .bold))
+                        .foregroundColor(.white)
+                        .autocapitalization(.none)
+                        .disableAutocorrection(true)
+                        .focused($isUsernameFocused)
+                        .submitLabel(.done)
+
+                    if viewModel.isSaving {
+                        ProgressView().tint(.white)
+                            .scaleEffect(0.8)
+                    } else if viewModel.username != viewModel.profile?.username
+                        && !viewModel.username.isEmpty
+                    {
+                        Button(action: {
+                            isUsernameFocused = false
+                            Task { await viewModel.updateUsername() }
+                        }) {
+                            Image(systemName: "checkmark.circle.fill")
+                                .foregroundColor(SoloColors.successGreen)
+                                .font(.title3)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // MARK: - Stats Row
+
+    private var statsRow: some View {
+        HStack(spacing: DesignSystem.Spacing.md) {
+            ProfileStatCard(
+                title: "Intel",
+                value: viewModel.intelligenceData.map {
+                    if let score = $0.intelligenceTotalScore {
+                        return String(Int(score))
+                    } else {
+                        return "—"
+                    }
+                } ?? "—",
+                icon: "brain.head.profile",
+                color: SoloColors.electricBlue,
+                isLoading: viewModel.intelligenceData == nil && viewModel.isLoading
+            )
+
+            ProfileStatCard(
+                title: "Strength",
+                value: viewModel.strengthData.map {
+                    String(Int($0.strengthTotalScore))
+                } ?? "—",
+                icon: "flame.fill",
+                color: SoloColors.dangerRed,
+                isLoading: viewModel.strengthData == nil && viewModel.isLoading
+            )
+
+            ProfileStatCard(
+                title: "Discipline",
+                value: viewModel.disciplineData.map {
+                    if let score = $0.disciplineTotalScore {
+                        return String(Int(score))
+                    } else {
+                        return "—"
+                    }
+                } ?? "—",
+                icon: "target",
+                color: SoloColors.hunterPurple,
+                isLoading: viewModel.disciplineData == nil && viewModel.isLoading
+            )
+
+            ProfileStatCard(
+                title: "Health",
+                value: viewModel.healthData.map {
+                    if let score = $0.healthTotalScore {
+                        return String(Int(score))
+                    } else {
+                        return "—"
+                    }
+                } ?? "—",
+                icon: "heart.fill",
+                color: SoloColors.successGreen,
+                isLoading: viewModel.healthData == nil && viewModel.isLoading
+            )
+        }
+        .padding(.horizontal, DesignSystem.Spacing.xl)
+    }
+
+    // MARK: - Info Section
+
+    private var infoSection: some View {
+        VStack(spacing: DesignSystem.Spacing.lg) {
+            ProfileInfoRow(
+                title: "MEMBER SINCE",
+                value: viewModel.profile?.formattedJoinDate ?? "Loading...",
+                icon: "calendar"
+            )
+
+            Divider().background(Color.white.opacity(0.1))
+
+            Button(action: {
+                if let address = viewModel.profile?.walletAddress {
+                    UIPasteboard.general.string = address
+                    let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+                    impactFeedback.impactOccurred()
+                }
+            }) {
+                ProfileInfoRow(
+                    title: "WALLET ADDRESS",
+                    value: viewModel.shortAddress(viewModel.profile?.walletAddress),
+                    icon: "doc.on.doc"
+                )
+            }
+        }
+        .liquidGlassCard(cornerRadius: DesignSystem.CornerRadius.large)
+        .padding(.horizontal, DesignSystem.Spacing.xl)
+    }
+
+    // MARK: - Danger Zone
+
+    private var dangerZone: some View {
+        Button(action: { viewModel.showDeleteConfirmation = true }) {
+            HStack(spacing: DesignSystem.Spacing.sm) {
+                Image(systemName: "exclamationmark.triangle")
+                Text("Deactivate Account")
+            }
+            .font(.system(size: 14, weight: .semibold))
+            .foregroundColor(SoloColors.dangerRed.opacity(0.8))
+            .padding(.horizontal, DesignSystem.Spacing.xl)
+            .padding(.vertical, DesignSystem.Spacing.md)
+            .background(
+                Capsule()
+                    .stroke(SoloColors.dangerRed.opacity(0.3), lineWidth: 1)
+            )
+        }
+        .padding(.bottom, DesignSystem.Spacing.xxl)
+    }
 }
 
-struct InfoRow: View {
+// MARK: - Profile Stat Card
+
+struct ProfileStatCard: View {
+    let title: String
+    let value: String
+    let icon: String
+    let color: Color
+    var isLoading: Bool = false
+
+    var body: some View {
+        VStack(spacing: DesignSystem.Spacing.sm) {
+            Image(systemName: icon)
+                .font(.system(size: 18))
+                .foregroundColor(color.opacity(0.8))
+
+            if isLoading {
+                ProgressView()
+                    .tint(.white)
+                    .scaleEffect(0.7)
+            } else {
+                Text(value)
+                    .font(.system(size: 20, weight: .bold, design: .rounded))
+                    .foregroundStyle(
+                        LinearGradient(
+                            colors: [color, color.opacity(0.7)],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    )
+            }
+
+            Text(title)
+                .font(.system(size: 10, weight: .medium))
+                .foregroundColor(SoloColors.textTertiary)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, DesignSystem.Spacing.lg)
+        .background(.ultraThinMaterial)
+        .clipShape(RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.small))
+        .overlay(
+            RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.small)
+                .stroke(color.opacity(0.2), lineWidth: 1)
+        )
+    }
+}
+
+// MARK: - Profile Info Row
+
+struct ProfileInfoRow: View {
     let title: String
     let value: String
     var icon: String? = nil
 
     var body: some View {
         HStack {
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: DesignSystem.Spacing.xs) {
                 Text(title)
                     .font(.system(size: 10, weight: .bold))
-                    .foregroundColor(.gray)
+                    .foregroundColor(SoloColors.textTertiary)
                     .tracking(1)
                 Text(value)
                     .font(.system(size: 16, weight: .medium))
@@ -288,9 +379,14 @@ struct InfoRow: View {
             Spacer()
             if let iconName = icon {
                 Image(systemName: iconName)
-                    .foregroundColor(.gray)
+                    .foregroundColor(SoloColors.textTertiary)
                     .font(.system(size: 14))
             }
         }
     }
+}
+
+#Preview {
+    ProfileView()
+        .environmentObject(AuthViewModel())
 }
