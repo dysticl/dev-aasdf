@@ -88,7 +88,8 @@ struct ArtifactCompletionView: View {
 
                         // Breakdown
                         VStack(spacing: 8) {
-                            XPBreakdownRow(label: "Raw XP", value: Int(response.breakdown.xpRaw))
+                            XPBreakdownRow(
+                                label: "Raw XP", value: "\(Int(response.breakdown.xpRaw))")
                             XPBreakdownRow(
                                 label: "Quality",
                                 value: String(format: "x%.1f", response.breakdown.executionQuality))
@@ -140,14 +141,14 @@ struct ArtifactCompletionView: View {
 
 struct XPBreakdownRow: View {
     let label: String
-    let value: Any
+    let value: String
 
     var body: some View {
         HStack {
             Text(label)
                 .foregroundColor(.gray)
             Spacer()
-            Text("\(value)")
+            Text(value)
                 .fontWeight(.bold)
                 .foregroundColor(.white)
         }

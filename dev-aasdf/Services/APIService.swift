@@ -385,9 +385,7 @@ class APIService {
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        if let token = KeychainHelper.standard.read(
-            service: "dev-aasdf", account: "accessToken", type: String.self)
-        {
+        if let token = KeychainHelper.shared.getToken() {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         }
 
@@ -399,7 +397,7 @@ class APIService {
 
         if !(200...299).contains(httpResponse.statusCode) {
             // Try to decode error message if possible
-            if let errorResponse = try? JSONDecoder().decode(ErrorResponse.self, from: data) {
+            if let errorResponse = try? JSONDecoder().decode(APIErrorResponse.self, from: data) {
                 throw NSError(
                     domain: "", code: httpResponse.statusCode,
                     userInfo: [NSLocalizedDescriptionKey: errorResponse.detail])
@@ -425,9 +423,7 @@ class APIService {
         request.setValue(
             "multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
 
-        if let token = KeychainHelper.standard.read(
-            service: "dev-aasdf", account: "accessToken", type: String.self)
-        {
+        if let token = KeychainHelper.shared.getToken() {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         }
 
@@ -459,7 +455,7 @@ class APIService {
             (200...299).contains(httpResponse.statusCode)
         else {
             // Try decoding error
-            if let errorResponse = try? JSONDecoder().decode(ErrorResponse.self, from: data) {
+            if let errorResponse = try? JSONDecoder().decode(APIErrorResponse.self, from: data) {
                 throw NSError(
                     domain: "", code: 0, userInfo: [NSLocalizedDescriptionKey: errorResponse.detail]
                 )
@@ -488,9 +484,7 @@ class APIService {
         request.httpMethod = "DELETE"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
 
-        if let token = KeychainHelper.standard.read(
-            service: "dev-aasdf", account: "accessToken", type: String.self)
-        {
+        if let token = KeychainHelper.shared.getToken() {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         }
 
@@ -501,7 +495,7 @@ class APIService {
         }
 
         if !(200...299).contains(httpResponse.statusCode) {
-            if let errorResponse = try? JSONDecoder().decode(ErrorResponse.self, from: data) {
+            if let errorResponse = try? JSONDecoder().decode(APIErrorResponse.self, from: data) {
                 throw NSError(
                     domain: "", code: httpResponse.statusCode,
                     userInfo: [NSLocalizedDescriptionKey: errorResponse.detail])

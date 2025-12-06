@@ -128,7 +128,10 @@ struct FilterPill: View {
                 .padding(.vertical, 8)
                 .background(
                     Capsule()
-                        .fill(isSelected ? Color.white : Material.ultraThinMaterial)
+                        .fill(
+                            isSelected
+                                ? AnyShapeStyle(Color.white)
+                                : AnyShapeStyle(Material.ultraThinMaterial))
                 )
                 .overlay(
                     Capsule()
@@ -153,57 +156,62 @@ struct ArtifactCard: View {
     }
 
     var body: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 8) {
-                HStack {
-                    if let categoryIcon = artifact.categoryIcon {  // Assuming extension or helper
-                        Text(categoryIcon)  // Placeholder if not available directly
-                    } else {
-                        Image(systemName: "doc.text")  // Fallback
-                    }
+        HStack(spacing: 16) {
+            // Checkbox
+            Image(systemName: artifact.status == "completed" ? "checkmark.circle.fill" : "circle")
+                .font(.system(size: 24))
+                .foregroundStyle(
+                    artifact.status == "completed"
+                        ? LinearGradient(
+                            colors: [.green, .mint],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                        : LinearGradient(
+                            colors: [.gray.opacity(0.4), .gray.opacity(0.2)],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                )
 
-                    Text(artifact.category)
-                        .font(.caption)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(Color.white.opacity(0.1))
-                        .clipShape(Capsule())
+            // Task Info
+            VStack(alignment: .leading, spacing: 6) {
+                HStack {
+                    Text(artifact.taskName)
+                        .font(.system(size: 17, weight: .semibold))
+                        .foregroundColor(.white)
+                        .lineLimit(2)
 
                     Spacer()
 
-                    Text(artifact.status.replacingOccurrences(of: "_", with: " ").capitalized)
-                        .font(.caption)
-                        .fontWeight(.bold)
-                        .foregroundColor(statusColor)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(statusColor.opacity(0.1))
-                        .clipShape(Capsule())
+                    if let priority = artifact.priority,
+                        priority.lowercased() == "high" || priority.lowercased() == "critical"
+                    {
+                        PriorityBadge(priority: priority)
+                    }
                 }
 
-                Text(artifact.taskName)
-                    .font(.headline)
-                    .foregroundColor(.white)
-                    .lineLimit(2)
+                HStack(spacing: 8) {
+                    Text(artifact.categoryIcon ?? "📋")
+                        .font(.system(size: 14))
 
-                if let xp = artifact.aiEstimate?.estimatedXp {
-                    HStack {
-                        Image(systemName: "sparkles")
-                            .foregroundColor(.yellow)
+                    Text(artifact.category)
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundColor(.white.opacity(0.6))
+
+                    Text("•")
+                        .foregroundColor(.white.opacity(0.4))
+
+                    if let xp = artifact.aiEstimate?.estimatedXp {
                         Text("\(xp) XP")
-                            .font(.system(size: 14, weight: .bold))
-                            .foregroundColor(.yellow)
+                            .font(.system(size: 13, weight: .bold))
+                            .foregroundStyle(LiquidGlassGradients.xpGold)
                     }
                 }
             }
-            .padding()
         }
-        .background(Material.ultraThinMaterial)
-        .cornerRadius(16)
-        .overlay(
-            RoundedRectangle(cornerRadius: 16)
-                .stroke(Color.white.opacity(0.1), lineWidth: 1)
-        )
+        .padding(16)
+        .liquidGlassCard(statusColor: statusColor)
     }
 }
 

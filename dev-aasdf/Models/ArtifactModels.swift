@@ -85,10 +85,15 @@ struct Artifact: Codable, Identifiable, Hashable {
 }
 
 struct ArtifactsListResponse: Codable {
-    let items: [Artifact]
+    let artifacts: [Artifact]
     let total: Int
-    let limit: Int
-    let offset: Int
+    let page: Int?
+    let perPage: Int?
+
+    enum CodingKeys: String, CodingKey {
+        case artifacts, total, page
+        case perPage = "per_page"
+    }
 }
 
 // MARK: - Artifact Detail

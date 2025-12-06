@@ -118,7 +118,7 @@ class ProfileViewModel: ObservableObject {
             try await apiService.uploadProfilePic(image)
             // Refresh profile to get new URL
             // FIX: Add cache buster to ensure immediate update
-            var userProfile = try await apiService.fetchMyProfile()
+            let userProfile = try await apiService.fetchMyProfile()
             if let url = userProfile.profilePicUrl {
                 let timestamp = Int(Date().timeIntervalSince1970)
                 let separator = url.contains("?") ? "&" : "?"

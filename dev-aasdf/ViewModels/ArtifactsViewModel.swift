@@ -29,10 +29,11 @@ class ArtifactsViewModel: ObservableObject {
     private let apiService = APIService.shared
 
     var filteredArtifacts: [Artifact] {
-        // Since the backend handles filtering, this local filtering is mostly for immediate UI updates
-        // or if we fetch all and filter locally. The backend listArtifacts has filters.
-        // We will trust the API response primarily, but can double check.
         return artifacts
+    }
+
+    var pendingCount: Int {
+        artifacts.filter { $0.status == "pending" || $0.status == "in_progress" }.count
     }
 
     // MARK: - API Calls
@@ -55,7 +56,7 @@ class ArtifactsViewModel: ObservableObject {
                 category: selectedCategory,
                 limit: 50  // Fetch a good amount
             )
-            self.artifacts = response.items
+            self.artifacts = response.artifacts
         } catch {
             errorMessage = error.localizedDescription
             showError = true
@@ -73,7 +74,7 @@ class ArtifactsViewModel: ObservableObject {
     ) async -> Bool {
         isLoading = true
         do {
-            let response = try await apiService.createArtifact(
+            _ = try await apiService.createArtifact(
                 taskName: taskName,
                 description: description,
                 category: category,

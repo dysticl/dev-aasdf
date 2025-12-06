@@ -253,7 +253,7 @@ struct ProfileView: View {
             ImagePicker(image: $viewModel.inputImage, sourceType: viewModel.sourceType)
                 .ignoresSafeArea()
         }
-        .onChange(of: viewModel.inputImage) { newImage in
+        .onChange(of: viewModel.inputImage) { _, newImage in
             if let img = newImage {
                 Task { await viewModel.uploadImage(img) }
             }
