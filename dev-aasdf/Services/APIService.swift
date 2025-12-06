@@ -295,6 +295,223 @@ class APIService {
         return try await get(endpoint: endpoint, authenticated: true)
     }
 
+    // MARK: - Artifacts
+
+    func getCategories() async throws -> [ArtifactCategory] {
+        let endpoint = "\(baseURL)/artifacts/categories"
+        let response: CategoriesResponse = try await get(endpoint: endpoint, authenticated: false)
+        return response.categories
+    }
+
+    func listArtifacts(
+        status: String? = nil,
+        category: String? = nil,
+        limit: Int = 20,
+        offset: Int = 0
+    ) async throws -> ArtifactsListResponse {
+        var queryItems: [URLQueryItem] = [
+            URLQueryItem(name: "limit", value: "\(limit)"),
+            URLQueryItem(name: "offset", value: "\(offset)"),
+        ]
+
+        if let status = status {
+            queryItems.append(URLQueryItem(name: "status", value: status))
+        }
+        if let category = category {
+            queryItems.append(URLQueryItem(name: "category", value: category))
+        }
+
+        // Use a custom method to handle query parameters properly if needed,
+        // but since 'get' doesn't take query items directly in this simple class, we build url manually
+        // We need to implement a cleaner way or just append string if 'get' is simple.
+        // Looking at the class structure (implied), we might want to manually construct the URL string for now.
+
+        var urlComponents = URLComponents(string: "\(baseURL)/artifacts")!
+        urlComponents.queryItems = queryItems
+
+        guard let url = urlComponents.url else {
+            throw URLError(.badURL)
+        }
+
+        // Since 'get' takes an endpoint string, let's just pass the full string BUT 'get' might be appending baseURL.
+        // If 'get' appends baseURL, we should only pass "/artifacts?...".
+        // Let's assume 'get' implementation handles full URLs or paths.
+        // Actually, looking at previous usages, 'get' takes "endpoint".
+        // Let's conform to the existing 'get' helper usage which likely takes a full URL string given previous usage:
+        // let endpoint = "\(baseURL)/intelligence/today"
+        // so we pass the full URL string.
+
+        return try await get(endpoint: url.absoluteString, authenticated: true)
+    }
+
+    func createArtifact(
+        taskName: String,
+        description: String?,
+        category: String,
+        estimatedHours: Double,
+        priority: String?,
+        deadline: Date?
+    ) async throws -> CreateArtifactResponse {
+        let endpoint = "\(baseURL)/artifacts"
+
+        let deadlineString: String? = deadline.map { ISO8601DateFormatter().string(from: $0) }
+
+        let body = CreateArtifactRequest(
+            taskName: taskName,
+            description: description,
+            category: category,
+            estimatedHours: estimatedHours,
+            priority: priority,
+            deadline: deadlineString
+        )
+
+        return try await post(endpoint: endpoint, body: body, authenticated: true)
+    }
+
+    func fetchArtifactDetail(artifactId: String) async throws -> ArtifactDetail {
+        let endpoint = "\(baseURL)/artifacts/\(artifactId)"
+        return try await get(endpoint: endpoint, authenticated: true)
+    }
+
+    func startArtifact(artifactId: String) async throws -> StartArtifactResponse {
+        let endpoint = "\(baseURL)/artifacts/\(artifactId)/start"
+        // Empty body POST
+        // We need a post method that takes no body or handle it.
+        // Assuming post<T, U> where U is body. We can pass Empty struct or Dictionary.
+        // If 'post' requires a body, we can pass an empty dict.
+        // Let's try passing simple empty dict if supported, otherwise we might need to modify APIService or add a specific method.
+        // Based on common patterns:
+        guard let url = URL(string: endpoint) else { throw URLError(.badURL) }
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        if let token = KeychainHelper.standard.read(
+            service: "dev-aasdf", account: "accessToken", type: String.self)
+        {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw URLError(.badServerResponse)
+        }
+
+        if !(200...299).contains(httpResponse.statusCode) {
+            // Try to decode error message if possible
+            if let errorResponse = try? JSONDecoder().decode(ErrorResponse.self, from: data) {
+                throw NSError(
+                    domain: "", code: httpResponse.statusCode,
+                    userInfo: [NSLocalizedDescriptionKey: errorResponse.detail])
+            }
+            throw URLError(.badServerResponse)
+        }
+
+        return try JSONDecoder().decode(StartArtifactResponse.self, from: data)
+    }
+
+    func uploadProof(
+        artifactId: String,
+        files: [(data: Data, mimeType: String, filename: String)],
+        actualHours: Double
+    ) async throws -> UploadProofResponse {
+        let endpoint = "\(baseURL)/artifacts/\(artifactId)/proof"
+        guard let url = URL(string: endpoint) else { throw URLError(.badURL) }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+
+        let boundary = UUID().uuidString
+        request.setValue(
+            "multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
+
+        if let token = KeychainHelper.standard.read(
+            service: "dev-aasdf", account: "accessToken", type: String.self)
+        {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+
+        var body = Data()
+
+        // Add actual_hours
+        body.append("--\(boundary)\r\n".data(using: .utf8)!)
+        body.append(
+            "Content-Disposition: form-data; name=\"actual_hours\"\r\n\r\n".data(using: .utf8)!)
+        body.append("\(actualHours)\r\n".data(using: .utf8)!)
+
+        // Add files
+        for file in files {
+            body.append("--\(boundary)\r\n".data(using: .utf8)!)
+            body.append(
+                "Content-Disposition: form-data; name=\"files\"; filename=\"\(file.filename)\"\r\n"
+                    .data(using: .utf8)!)
+            body.append("Content-Type: \(file.mimeType)\r\n\r\n".data(using: .utf8)!)
+            body.append(file.data)
+            body.append("\r\n".data(using: .utf8)!)
+        }
+
+        body.append("--\(boundary)--\r\n".data(using: .utf8)!)
+        request.httpBody = body
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse,
+            (200...299).contains(httpResponse.statusCode)
+        else {
+            // Try decoding error
+            if let errorResponse = try? JSONDecoder().decode(ErrorResponse.self, from: data) {
+                throw NSError(
+                    domain: "", code: 0, userInfo: [NSLocalizedDescriptionKey: errorResponse.detail]
+                )
+            }
+            throw URLError(.badServerResponse)
+        }
+
+        return try JSONDecoder().decode(UploadProofResponse.self, from: data)
+    }
+
+    func completeArtifact(
+        artifactId: String,
+        actualHours: Double,
+        userNote: String?
+    ) async throws -> CompletionResponse {
+        let endpoint = "\(baseURL)/artifacts/\(artifactId)/complete"
+        let body = CompleteArtifactRequest(actualHours: actualHours, userNote: userNote)
+        return try await post(endpoint: endpoint, body: body, authenticated: true)
+    }
+
+    func cancelArtifact(artifactId: String) async throws -> CancelArtifactResponse {
+        let endpoint = "\(baseURL)/artifacts/\(artifactId)"
+        // DELETE method
+        guard let url = URL(string: endpoint) else { throw URLError(.badURL) }
+        var request = URLRequest(url: url)
+        request.httpMethod = "DELETE"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+        if let token = KeychainHelper.standard.read(
+            service: "dev-aasdf", account: "accessToken", type: String.self)
+        {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw URLError(.badServerResponse)
+        }
+
+        if !(200...299).contains(httpResponse.statusCode) {
+            if let errorResponse = try? JSONDecoder().decode(ErrorResponse.self, from: data) {
+                throw NSError(
+                    domain: "", code: httpResponse.statusCode,
+                    userInfo: [NSLocalizedDescriptionKey: errorResponse.detail])
+            }
+            throw URLError(.badServerResponse)
+        }
+
+        return try JSONDecoder().decode(CancelArtifactResponse.self, from: data)
+    }
+
     // MARK: - Private Methods
 
     private func get<T: Decodable>(endpoint: String, authenticated: Bool = false) async throws -> T
