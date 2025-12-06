@@ -279,12 +279,13 @@ struct XPBreakdown: Codable, Hashable {
 struct CompletionResponse: Codable {
     let artifactId: String
     let status: String
-    let xpAwarded: Int
-    let breakdown: XPBreakdown
-    let feedback: String
-    let completedAt: String
-    let leveledUp: Bool
+    let xpAwarded: Int?  // Optional - only when accepted
+    let breakdown: XPBreakdown?  // Optional - only when accepted
+    let feedback: String?  // Optional - might be missing
+    let completedAt: String?  // Optional - only when accepted
+    let leveledUp: Bool?  // Optional - only when accepted
     let newLevel: Int?
+    let warnings: [String]?  // Present when rejected
 
     enum CodingKeys: String, CodingKey {
         case artifactId = "artifact_id"
@@ -294,6 +295,7 @@ struct CompletionResponse: Codable {
         case completedAt = "completed_at"
         case leveledUp = "leveled_up"
         case newLevel = "new_level"
+        case warnings
     }
 }
 
