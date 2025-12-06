@@ -54,7 +54,7 @@ struct ArtifactDetailView: View {
 
                         // MARK: - AI Estimate Card
                         if let estimate = artifact.aiEstimate {
-                            GlassCard {
+                            ArtifactGlassContainer {
                                 VStack(alignment: .leading, spacing: 16) {
                                     HStack {
                                         Image(systemName: "sparkles")
@@ -212,7 +212,7 @@ struct ArtifactDetailView: View {
 
 // MARK: - Helper Views
 
-struct GlassCard<Content: View>: View {
+struct ArtifactGlassContainer<Content: View>: View {
     let content: Content
 
     init(@ViewBuilder content: () -> Content) {
