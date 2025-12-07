@@ -57,7 +57,7 @@ struct NewHomeView: View {
                 
                 Text("\(appData.streakDays) days")
                     .font(.title3.weight(.bold))
-                    .foregroundStyle(.violetGlow)
+                    .foregroundStyle(Color.violetGlow)
                     .violetGlow()
             }
             
@@ -73,7 +73,7 @@ struct NewHomeView: View {
                     Capsule()
                         .fill(
                             LinearGradient(
-                                colors: [.violetGlow, .violetGlow.opacity(0.6)],
+                                colors: [Color.violetGlow, Color.violetGlow.opacity(0.6)],
                                 startPoint: .leading,
                                 endPoint: .trailing
                             )
@@ -134,7 +134,7 @@ struct NewStreakView: View {
                                 .frame(height: 12)
                             
                             Capsule()
-                                .fill(.violetGlow)
+                                .fill(Color.violetGlow)
                                 .frame(width: geometry.size.width * (Double(appData.streakDays) / 30.0), height: 12)
                                 .violetGlow()
                         }

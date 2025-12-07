@@ -8,6 +8,8 @@
 
 /* Begin PBXBuildFile section */
 		162898C8E456BD90F64A55BF /* Pods_dev_aasdf.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 8B0A7255292A908580FBFCC2 /* Pods_dev_aasdf.framework */; };
+		653D1BC12EE6107E00B8147F /* ProfileViewWrapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 653D1BBF2EE6107E00B8147F /* ProfileViewWrapper.swift */; };
+		653D1BC22EE6107E00B8147F /* LeaderboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 653D1BC02EE6107E00B8147F /* LeaderboardView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -29,6 +31,8 @@
 
 /* Begin PBXFileReference section */
 		1A042CA76AC89097BB2A0B88 /* Pods-dev-aasdf.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-dev-aasdf.release.xcconfig"; path = "Target Support Files/Pods-dev-aasdf/Pods-dev-aasdf.release.xcconfig"; sourceTree = "<group>"; };
+		653D1BBF2EE6107E00B8147F /* ProfileViewWrapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileViewWrapper.swift; sourceTree = "<group>"; };
+		653D1BC02EE6107E00B8147F /* LeaderboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LeaderboardView.swift; sourceTree = "<group>"; };
 		65F3E1502EE0EA5B002909B5 /* dev-aasdf.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "dev-aasdf.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		65F3E15D2EE0EA5C002909B5 /* dev-aasdfTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "dev-aasdfTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		65F3E1672EE0EA5C002909B5 /* dev-aasdfUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "dev-aasdfUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -41,6 +45,11 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
+				Views/Home/AddTaskView.swift,
+				Views/Home/ContentView.swift,
+				"Views/Home/HomeView 2.swift",
+				Views/Home/ProfileView.swift,
+				Views/Profile/ProfileView.swift,
 			);
 			target = 65F3E14F2EE0EA5B002909B5 /* dev-aasdf */;
 		};
@@ -104,6 +113,8 @@
 		65F3E1472EE0EA5B002909B5 = {
 			isa = PBXGroup;
 			children = (
+				653D1BC02EE6107E00B8147F /* LeaderboardView.swift */,
+				653D1BBF2EE6107E00B8147F /* ProfileViewWrapper.swift */,
 				65F3E1522EE0EA5B002909B5 /* dev-aasdf */,
 				65F3E1602EE0EA5C002909B5 /* dev-aasdfTests */,
 				65F3E16A2EE0EA5C002909B5 /* dev-aasdfUITests */,
@@ -318,6 +329,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				653D1BC12EE6107E00B8147F /* ProfileViewWrapper.swift in Sources */,
+				653D1BC22EE6107E00B8147F /* LeaderboardView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

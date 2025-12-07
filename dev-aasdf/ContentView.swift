@@ -26,6 +26,8 @@ struct ContentView: View {
         .task {
             await authViewModel.checkExistingSession()
         }
+        .appChrome()
+        .appBackground()
         // Global dark mode enforcement
         .preferredColorScheme(.dark)
     }
@@ -33,4 +35,6 @@ struct ContentView: View {
 
 #Preview {
     ContentView()
+        .appChrome()
+        .appBackground()
 }

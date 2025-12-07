@@ -101,7 +101,7 @@ struct NewAddTaskView: View {
                                 RoundedRectangle(cornerRadius: 16)
                                     .fill(
                                         LinearGradient(
-                                            colors: [.violetGlow, .violetGlow.opacity(0.8)],
+                                            colors: [Color.violetGlow, Color.violetGlow.opacity(0.8)],
                                             startPoint: .leading,
                                             endPoint: .trailing
                                         )

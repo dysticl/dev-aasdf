@@ -2,12 +2,12 @@
 //  LiquidGlassComponents.swift
 //  dev-aasdf
 //
-//  Solo Leveling UI Design System with iOS 26 Liquid Glass aesthetics
+//  Solo Leveling Design System - Dark Fantasy RPG UI
 //
 
 import SwiftUI
 
-// MARK: - Design System
+// MARK: - Design System Constants
 
 enum DesignSystem {
     enum Spacing {
@@ -35,235 +35,90 @@ enum DesignSystem {
     }
 }
 
-// MARK: - Color Extension for Hex
-
-extension Color {
-    init(hex: String) {
-        let hex = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
-        var int: UInt64 = 0
-        Scanner(string: hex).scanHexInt64(&int)
-        let a: UInt64
-        let r: UInt64
-        let g: UInt64
-        let b: UInt64
-        switch hex.count {
-        case 3:
-            (a, r, g, b) = (255, (int >> 8) * 17, (int >> 4 & 0xF) * 17, (int & 0xF) * 17)
-        case 6:
-            (a, r, g, b) = (255, int >> 16, int >> 8 & 0xFF, int & 0xFF)
-        case 8:
-            (a, r, g, b) = (int >> 24, int >> 16 & 0xFF, int >> 8 & 0xFF, int & 0xFF)
-        default:
-            (a, r, g, b) = (255, 0, 0, 0)
-        }
-        self.init(
-            .sRGB,
-            red: Double(r) / 255,
-            green: Double(g) / 255,
-            blue: Double(b) / 255,
-            opacity: Double(a) / 255
-        )
-    }
-}
-
 // MARK: - Solo Leveling Color Palette
 
 enum SoloColors {
-    // Base colors
-    static let darkBackground = Color(hex: "0F1419")
-    static let cardBackground = Color(hex: "1A1F2E")
-    static let surface = Color(hex: "252B3B")
+    // Dark Fantasy Base - Pure black (#000000) and deep grey (#1A1A1A)
+    static let darkBackground = Color(hex: "000000")
+    static let cardBackground = Color(hex: "1A1A1A")
+    static let surface = Color(hex: "0D0D0D")
 
-    // Neon accents
-    static let electricBlue = Color(hex: "00D4FF")
-    static let hunterPurple = Color(hex: "8B5CF6")
-    static let xpGold = Color(hex: "FFB800")
-    static let successGreen = Color(hex: "10B981")
-    static let dangerRed = Color(hex: "EF4444")
-    static let warningOrange = Color(hex: "F59E0B")
+    // Neon Accents - as specified
+    static let neonBlue = Color(hex: "00BFFF")  // Primary accent
+    static let neonViolet = Color(hex: "8A2BE2")  // Secondary accent
+    static let xpGold = Color(hex: "FFD700")  // XP/Rewards
+    static let successGreen = Color(hex: "10B981")  // Success states
+    static let dangerRed = Color(hex: "EF4444")  // Danger/Critical
+    static let warningOrange = Color(hex: "F59E0B")  // Warnings
 
-    // Text colors
+    // Backward compatibility aliases
+    static let electricBlue = neonBlue
+    static let hunterPurple = neonViolet
+
+    // Text colors with proper contrast (4.5:1 minimum)
     static let textPrimary = Color.white
     static let textSecondary = Color.white.opacity(0.7)
     static let textTertiary = Color.white.opacity(0.5)
 }
 
-// MARK: - Liquid Glass Gradients
+// MARK: - Solo Leveling Gradients
 
 struct LiquidGlassGradients {
+    // Main background gradient
     static let background = LinearGradient(
         colors: [SoloColors.darkBackground, SoloColors.cardBackground],
         startPoint: .top,
         endPoint: .bottom
     )
 
+    // XP Gold gradient for rewards
     static let xpGold = LinearGradient(
-        colors: [SoloColors.xpGold, .yellow],
+        colors: [SoloColors.xpGold, .orange],
         startPoint: .leading,
         endPoint: .trailing
     )
 
+    // Primary neon gradient
     static let primary = LinearGradient(
-        colors: [SoloColors.electricBlue, SoloColors.hunterPurple],
+        colors: [SoloColors.neonBlue, SoloColors.neonViolet],
         startPoint: .topLeading,
         endPoint: .bottomTrailing
     )
 
+    // Hunter rank gradient
     static let hunterRank = LinearGradient(
-        colors: [.cyan, SoloColors.electricBlue],
+        colors: [.cyan, SoloColors.neonBlue],
         startPoint: .topLeading,
         endPoint: .bottomTrailing
     )
 
+    // Level up celebration
     static let levelUp = LinearGradient(
         colors: [SoloColors.xpGold, SoloColors.warningOrange],
         startPoint: .top,
         endPoint: .bottom
     )
 
+    // Success gradient
     static let success = LinearGradient(
         colors: [SoloColors.successGreen, .mint],
         startPoint: .topLeading,
         endPoint: .bottomTrailing
     )
 
+    // Danger/Critical gradient
     static let danger = LinearGradient(
         colors: [SoloColors.dangerRed, .pink],
         startPoint: .topLeading,
         endPoint: .bottomTrailing
     )
 
+    // Glass border effect
     static let glassBorder = LinearGradient(
-        colors: [Color.white.opacity(0.3), Color.white.opacity(0.05)],
+        colors: [Color.white.opacity(0.2), Color.white.opacity(0.05)],
         startPoint: .topLeading,
         endPoint: .bottomTrailing
     )
-
-    static let darkOverlay = LinearGradient(
-        colors: [Color.black.opacity(0.6), Color.clear],
-        startPoint: .bottom,
-        endPoint: .top
-    )
-}
-
-// MARK: - Ambient Glow Background
-
-struct AmbientGlowBackground: View {
-    var primaryColor: Color = SoloColors.electricBlue
-    var secondaryColor: Color = SoloColors.hunterPurple
-    var tertiaryColor: Color = SoloColors.xpGold
-
-    var body: some View {
-        ZStack {
-            LiquidGlassGradients.background.ignoresSafeArea()
-
-            // Primary glow - top left
-            Circle()
-                .fill(primaryColor.opacity(0.10))
-                .blur(radius: 120)
-                .frame(width: 300, height: 300)
-                .offset(x: -100, y: -200)
-
-            // Secondary glow - bottom right
-            Circle()
-                .fill(secondaryColor.opacity(0.08))
-                .blur(radius: 100)
-                .frame(width: 250, height: 250)
-                .offset(x: 150, y: 300)
-
-            // Tertiary glow - center accent
-            Circle()
-                .fill(tertiaryColor.opacity(0.05))
-                .blur(radius: 80)
-                .frame(width: 200, height: 200)
-                .offset(x: 50, y: 100)
-        }
-    }
-}
-
-// MARK: - Stat Mini Card (Enhanced)
-
-struct StatMiniCard: View {
-    let title: String
-    let value: String
-    let icon: String
-    let color: Color
-
-    init(title: String, value: String, color: Color, icon: String = "") {
-        self.title = title
-        self.value = value
-        self.color = color
-        self.icon = icon
-    }
-
-    var body: some View {
-        VStack(spacing: DesignSystem.Spacing.sm) {
-            if !icon.isEmpty {
-                Image(systemName: icon)
-                    .font(.system(size: DesignSystem.IconSize.medium))
-                    .foregroundColor(color.opacity(0.8))
-            }
-
-            Text(value)
-                .font(.system(size: 22, weight: .bold, design: .rounded))
-                .foregroundStyle(
-                    LinearGradient(
-                        colors: [color, color.opacity(0.7)],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
-                )
-
-            Text(title)
-                .font(.system(size: 11, weight: .medium))
-                .foregroundColor(SoloColors.textTertiary)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, DesignSystem.Spacing.lg)
-        .background(.ultraThinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.small))
-        .overlay(
-            RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.small)
-                .stroke(Color.white.opacity(0.1), lineWidth: 1)
-        )
-    }
-}
-
-// MARK: - Status Tab Button (Enhanced)
-
-struct StatusTabButton: View {
-    let title: String
-    let isSelected: Bool
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            Text(title)
-                .font(.system(size: 13, weight: isSelected ? .bold : .medium))
-                .foregroundColor(isSelected ? .white : SoloColors.textSecondary)
-                .padding(.horizontal, DesignSystem.Spacing.lg)
-                .padding(.vertical, DesignSystem.Spacing.md)
-                .background(
-                    Group {
-                        if isSelected {
-                            LiquidGlassGradients.primary.opacity(0.3)
-                        } else {
-                            Color.clear
-                        }
-                    }
-                )
-                .clipShape(Capsule())
-                .overlay(
-                    Capsule()
-                        .stroke(
-                            isSelected
-                                ? SoloColors.electricBlue.opacity(0.5) : Color.white.opacity(0.1),
-                            lineWidth: 1
-                        )
-                )
-        }
-        .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isSelected)
-    }
 }
 
 // MARK: - Priority Badge
@@ -281,19 +136,20 @@ struct PriorityBadge: View {
     }
 
     var body: some View {
-        Text(priority.capitalized)
-            .font(.system(size: 10, weight: .bold))
+        Text(priority.uppercased())
+            .font(.system(size: 9, weight: .black))
+            .tracking(1)
             .foregroundColor(.white)
             .padding(.horizontal, DesignSystem.Spacing.sm)
             .padding(.vertical, DesignSystem.Spacing.xs)
             .background(
                 Capsule().fill(badgeColor)
             )
-            .shadow(color: badgeColor.opacity(0.4), radius: 4, y: 2)
+            .shadow(color: badgeColor.opacity(0.5), radius: 4)
     }
 }
 
-// MARK: - Floating Action Button (Enhanced)
+// MARK: - Floating Action Button
 
 struct FloatingActionButton: View {
     let action: () -> Void
@@ -305,22 +161,31 @@ struct FloatingActionButton: View {
             impactFeedback.impactOccurred()
             action()
         }) {
-            Image(systemName: "plus")
-                .font(.system(size: 26, weight: .bold))
-                .foregroundColor(.white)
-                .frame(width: 68, height: 68)
-                .background(
-                    Circle()
-                        .fill(LiquidGlassGradients.primary)
-                )
-                .overlay(
-                    Circle()
-                        .stroke(Color.white.opacity(0.2), lineWidth: 1)
-                )
-                .shadow(color: SoloColors.electricBlue.opacity(0.5), radius: 20, x: 0, y: 8)
-                .shadow(color: SoloColors.hunterPurple.opacity(0.3), radius: 30, x: 0, y: 15)
+            ZStack {
+                // Outer glow ring
+                Circle()
+                    .stroke(SoloColors.neonBlue.opacity(0.3), lineWidth: 2)
+                    .frame(width: 72, height: 72)
+
+                // Main button
+                Circle()
+                    .fill(
+                        LinearGradient(
+                            colors: [SoloColors.neonBlue, SoloColors.neonViolet],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .frame(width: 64, height: 64)
+
+                Image(systemName: "plus")
+                    .font(.system(size: 28, weight: .bold))
+                    .foregroundColor(.white)
+            }
+            .shadow(color: SoloColors.neonBlue.opacity(0.6), radius: 15, y: 5)
+            .shadow(color: SoloColors.neonViolet.opacity(0.4), radius: 25, y: 10)
         }
-        .scaleEffect(isPressed ? 0.9 : 1.0)
+        .scaleEffect(isPressed ? 0.92 : 1.0)
         .animation(.spring(response: 0.3, dampingFraction: 0.6), value: isPressed)
         .simultaneousGesture(
             DragGesture(minimumDistance: 0)
@@ -341,27 +206,19 @@ struct LiquidGlassCardModifier: ViewModifier {
         content
             .padding(padding)
             .background(
-                ZStack {
-                    RoundedRectangle(cornerRadius: cornerRadius)
-                        .fill(.ultraThinMaterial)
-
-                    if statusColor != .clear {
-                        RoundedRectangle(cornerRadius: cornerRadius)
-                            .fill(
-                                LinearGradient(
-                                    colors: [statusColor.opacity(0.15), statusColor.opacity(0.05)],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
-                            )
-                    }
-                }
+                RoundedRectangle(cornerRadius: cornerRadius)
+                    .fill(SoloColors.cardBackground.opacity(0.8))
             )
             .overlay(
                 RoundedRectangle(cornerRadius: cornerRadius)
-                    .stroke(Color.white.opacity(0.12), lineWidth: 1)
+                    .stroke(
+                        statusColor == .clear
+                            ? Color.white.opacity(0.1)
+                            : statusColor.opacity(0.4),
+                        lineWidth: 1
+                    )
             )
-            .shadow(color: .black.opacity(0.15), radius: 10, x: 0, y: 5)
+            .shadow(color: statusColor.opacity(0.2), radius: 10, y: 4)
     }
 }
 
@@ -380,53 +237,87 @@ extension View {
     }
 }
 
-// MARK: - Glass Button Style
+// MARK: - Neon Glow Modifier
 
-struct GlassButtonStyle: ButtonStyle {
-    var color: Color = SoloColors.electricBlue
-
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .font(.system(size: 16, weight: .semibold))
-            .foregroundColor(.white)
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, DesignSystem.Spacing.lg)
-            .background(
-                RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.medium)
-                    .fill(
-                        configuration.isPressed
-                            ? color.opacity(0.8)
-                            : color
-                    )
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.medium)
-                    .stroke(Color.white.opacity(0.2), lineWidth: 1)
-            )
-            .shadow(
-                color: color.opacity(0.4), radius: configuration.isPressed ? 5 : 10,
-                y: configuration.isPressed ? 2 : 5
-            )
-            .scaleEffect(configuration.isPressed ? 0.98 : 1.0)
-            .animation(.spring(response: 0.2, dampingFraction: 0.7), value: configuration.isPressed)
-    }
-}
-
-// MARK: - Glow Text Modifier
-
-struct GlowTextModifier: ViewModifier {
-    var color: Color = SoloColors.electricBlue
-    var radius: CGFloat = 10
+struct NeonGlowModifier: ViewModifier {
+    var color: Color = SoloColors.neonBlue
+    var radius: CGFloat = 8
 
     func body(content: Content) -> some View {
         content
-            .shadow(color: color.opacity(0.5), radius: radius / 2)
-            .shadow(color: color.opacity(0.3), radius: radius)
+            .shadow(color: color.opacity(0.6), radius: radius / 2)
+            .shadow(color: color.opacity(0.4), radius: radius)
     }
 }
 
 extension View {
-    func glowEffect(color: Color = SoloColors.electricBlue, radius: CGFloat = 10) -> some View {
-        modifier(GlowTextModifier(color: color, radius: radius))
+    func neonGlow(color: Color = SoloColors.neonBlue, radius: CGFloat = 8) -> some View {
+        modifier(NeonGlowModifier(color: color, radius: radius))
+    }
+
+    // Alias for backward compatibility
+    func glowEffect(color: Color = SoloColors.neonBlue, radius: CGFloat = 10) -> some View {
+        modifier(NeonGlowModifier(color: color, radius: radius))
+    }
+}
+
+// MARK: - HUD Border Modifier
+
+struct HUDBorderModifier: ViewModifier {
+    var color: Color = SoloColors.neonBlue
+    var cornerRadius: CGFloat = DesignSystem.CornerRadius.medium
+
+    func body(content: Content) -> some View {
+        content
+            .overlay(
+                RoundedRectangle(cornerRadius: cornerRadius)
+                    .stroke(color.opacity(0.5), lineWidth: 1.5)
+            )
+            .shadow(color: color.opacity(0.25), radius: 8)
+    }
+}
+
+extension View {
+    func hudBorder(
+        color: Color = SoloColors.neonBlue, cornerRadius: CGFloat = DesignSystem.CornerRadius.medium
+    ) -> some View {
+        modifier(HUDBorderModifier(color: color, cornerRadius: cornerRadius))
+    }
+
+    func glassEffect(material: Material = .ultraThin, radius: CGFloat) -> some View {
+        self.background(
+            RoundedRectangle(cornerRadius: radius)
+                .fill(material)
+        )
+    }
+}
+
+// MARK: - Ambient Glow Background (Legacy Support)
+
+struct AmbientGlowBackground: View {
+    var primaryColor: Color = SoloColors.neonBlue
+    var secondaryColor: Color = SoloColors.neonViolet
+    var tertiaryColor: Color = SoloColors.xpGold
+
+    var body: some View {
+        ZStack {
+            Color.black.ignoresSafeArea()
+
+            // Primary glow - top left
+            RadialGradient(
+                colors: [primaryColor.opacity(0.15), Color.clear],
+                center: .topLeading,
+                startRadius: 0,
+                endRadius: 350
+            )
+
+            // Secondary glow - bottom right
+            RadialGradient(
+                colors: [secondaryColor.opacity(0.10), Color.clear],
+                center: .bottomTrailing,
+                startRadius: 0,
+                endRadius: 300
+            )
+        }
     }
 }

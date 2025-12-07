@@ -1,6 +1,7 @@
 //
 //  HomeView.swift
 //  dev-aasdf
+//  REDESIGNED mit Solo Leveling Theme - Funktionalität INTAKT
 //
 
 import SwiftUI
@@ -14,21 +15,10 @@ struct HomeView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                // Background Gradient
-                LiquidGlassGradients.background
+                // NEW: Shadow Background statt AmbientGlowBackground
+                Color.shadowBackground
                     .ignoresSafeArea()
-
-                // Ambient Glow Effects
-                Circle()
-                    .fill(Color.blue.opacity(0.08))
-                    .blur(radius: 120)
-                    .offset(x: -100, y: -200)
-
-                Circle()
-                    .fill(Color.purple.opacity(0.06))
-                    .blur(radius: 100)
-                    .offset(x: 150, y: 300)
-
+                
                 // Main Content
                 ScrollView {
                     VStack(spacing: 24) {
@@ -39,18 +29,11 @@ struct HomeView: View {
                     }
                     .padding(.horizontal, 20)
                     .padding(.top, 20)
-                    .padding(.bottom, 120)
+                    .padding(.bottom, 40)
                 }
                 .refreshable {
                     await viewModel.fetchArtifacts()
                 }
-
-                // Bottom Navigation Bar
-                VStack {
-                    Spacer()
-                    bottomNavBar
-                }
-                .ignoresSafeArea(.keyboard)
 
                 // Floating Action Button
                 VStack {
@@ -88,27 +71,27 @@ struct HomeView: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text("Willkommen, Hunter")
                     .font(.system(size: 28, weight: .bold))
-                    .foregroundColor(.white)
+                    .foregroundStyle(Color.shadowText)
 
                 Text("Du hast \(viewModel.pendingCount) offene Aufgaben")
                     .font(.system(size: 15))
-                    .foregroundColor(.white.opacity(0.7))
+                    .foregroundStyle(Color.shadowTextSecondary)
             }
 
             Spacer()
 
-            NavigationLink(destination: ProfileView()) {
+            NavigationLink(destination: ProfileViewWrapper()) {
                 Circle()
-                    .fill(.ultraThinMaterial)
+                    .fill(Color.violetGlow.opacity(0.2))
                     .frame(width: 44, height: 44)
                     .overlay(
                         Image(systemName: "person.circle.fill")
                             .font(.system(size: 24))
-                            .foregroundColor(.white.opacity(0.8))
+                            .foregroundStyle(Color.violetGlow)
                     )
                     .overlay(
                         Circle()
-                            .stroke(Color.white.opacity(0.1), lineWidth: 1)
+                            .stroke(Color.violetGlow.opacity(0.3), lineWidth: 1.5)
                     )
             }
         }
@@ -118,9 +101,11 @@ struct HomeView: View {
 
     private var statsOverview: some View {
         HStack(spacing: 12) {
-            StatMiniCard(title: "XP Heute", value: "+0", color: .orange)
-            StatMiniCard(title: "Streak", value: "0 Tage", color: .green)
-            StatMiniCard(title: "Level", value: "1", color: .purple)
+            StatMiniCard(title: "XP HEUTE", value: "+0", icon: "sparkles", color: SoloColors.xpGold)
+            StatMiniCard(
+                title: "STREAK", value: "0", icon: "flame.fill", color: SoloColors.successGreen)
+            StatMiniCard(
+                title: "LEVEL", value: "1", icon: "star.fill", color: SoloColors.neonViolet)
         }
     }
 
@@ -187,45 +172,6 @@ struct HomeView: View {
         }
     }
 
-    // MARK: - Bottom Navigation Bar
-
-    private var bottomNavBar: some View {
-        HStack {
-            NavigationLink(destination: ProfileView()) {
-                HStack(spacing: 12) {
-                    Image(systemName: "person.circle.fill")
-                        .font(.title2)
-                    Text("Profile")
-                        .fontWeight(.medium)
-                }
-                .foregroundColor(.white)
-                .padding(.horizontal, 20)
-                .padding(.vertical, 12)
-                .background(Material.ultraThinMaterial)
-                .clipShape(Capsule())
-                .overlay(
-                    Capsule()
-                        .stroke(Color.white.opacity(0.1), lineWidth: 1)
-                )
-            }
-
-            Spacer()
-        }
-        .padding(.horizontal, 20)
-        .padding(.bottom, 10)
-        .frame(height: 80)
-        .background(
-            Rectangle()
-                .fill(Material.ultraThinMaterial)
-                .mask(
-                    LinearGradient(
-                        colors: [.black.opacity(1), .black.opacity(0)],
-                        startPoint: .bottom,
-                        endPoint: .top
-                    )
-                )
-        )
-    }
 }
 
 // MARK: - Liquid Glass Artifact Card
@@ -307,4 +253,6 @@ struct LiquidGlassArtifactCard: View {
 #Preview {
     HomeView()
         .environmentObject(AuthViewModel())
+        .appChrome()
+        .appBackground()
 }

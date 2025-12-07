@@ -15,12 +15,7 @@ struct ProfileView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                // Background with Ambient Glows
-                AmbientGlowBackground(
-                    primaryColor: SoloColors.hunterPurple,
-                    secondaryColor: SoloColors.electricBlue,
-                    tertiaryColor: SoloColors.xpGold
-                )
+                // Removed AmbientGlowBackground, replaced with solid background
 
                 if viewModel.isLoading && viewModel.profile == nil {
                     ProgressView()
@@ -43,10 +38,10 @@ struct ProfileView: View {
                     }
                 }
             }
-            .navigationTitle("Profile")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbarBackground(.hidden, for: .navigationBar)
+            // Single background - no duplicate
         }
+        .appBackground()
+        .appChrome()
         .task {
             if viewModel.profile == nil {
                 await viewModel.loadData()
@@ -135,8 +130,9 @@ struct ProfileView: View {
                     .id(urlString)
                 } else {
                     Circle()
-                        .fill(.ultraThinMaterial)
+                        .fill(Color.clear)
                         .frame(width: 120, height: 120)
+                        .glassEffect(.regular, in: .circle)
                         .overlay(
                             Image(systemName: "person.fill")
                                 .resizable()
@@ -149,7 +145,8 @@ struct ProfileView: View {
                 Button(action: { viewModel.showActionSheet = true }) {
                     ZStack {
                         Circle()
-                            .fill(.ultraThinMaterial)
+                            .fill(Color.clear)
+                            .glassEffect(.regular, in: .circle)
                             .frame(width: 40, height: 40)
                             .overlay(
                                 Circle().stroke(Color.white.opacity(0.2), lineWidth: 1)
@@ -287,7 +284,7 @@ struct ProfileView: View {
                 )
             }
         }
-        .liquidGlassCard(cornerRadius: DesignSystem.CornerRadius.large)
+        .glassCard(cornerRadius: DesignSystem.CornerRadius.large)
         .padding(.horizontal, DesignSystem.Spacing.xl)
     }
 
@@ -349,12 +346,10 @@ struct ProfileStatCard: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, DesignSystem.Spacing.lg)
-        .background(.ultraThinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.small))
-        .overlay(
-            RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.small)
-                .stroke(color.opacity(0.2), lineWidth: 1)
-        )
+        .glassCard(
+            cornerRadius: DesignSystem.CornerRadius.small,
+            strokeColor: color,
+            strokeOpacity: 0.2)
     }
 }
 
@@ -389,4 +384,6 @@ struct ProfileInfoRow: View {
 #Preview {
     ProfileView()
         .environmentObject(AuthViewModel())
+        .appChrome()
+        .appBackground()
 }

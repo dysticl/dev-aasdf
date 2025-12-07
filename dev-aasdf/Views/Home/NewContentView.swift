@@ -40,7 +40,7 @@ struct NewContentView: View {
                 }
         }
         .environment(appData)
-        .tint(.violetGlow)
+        .tint(Color.violetGlow)
         .preferredColorScheme(.dark)
     }
 }

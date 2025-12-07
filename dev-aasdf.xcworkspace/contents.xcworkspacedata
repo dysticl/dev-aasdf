@@ -7,4 +7,10 @@
    <FileRef
       location = "group:Pods/Pods.xcodeproj">
    </FileRef>
+   <FileRef
+      location = "group:ProfileViewWrapper.swift">
+   </FileRef>
+   <FileRef
+      location = "group:LeaderboardView.swift">
+   </FileRef>
 </Workspace>

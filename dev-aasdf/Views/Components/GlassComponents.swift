@@ -7,56 +7,6 @@
 
 import SwiftUI
 
-// MARK: - Glass Card Modifier
-
-struct GlassCard: ViewModifier {
-    var cornerRadius: CGFloat = 20
-
-    func body(content: Content) -> some View {
-        content
-            .background(
-                ZStack {
-                    // Ultra Thin Material for the glass effect
-                    Rectangle()
-                        .fill(.ultraThinMaterial)
-                        .opacity(0.9)
-
-                    // Subtle gradient overlay for depth
-                    LinearGradient(
-                        colors: [
-                            .white.opacity(0.1),
-                            .white.opacity(0.05),
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                }
-            )
-            .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
-            .overlay(
-                RoundedRectangle(cornerRadius: cornerRadius)
-                    .stroke(
-                        LinearGradient(
-                            colors: [
-                                .white.opacity(0.3),
-                                .white.opacity(0.1),
-                            ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        ),
-                        lineWidth: 1
-                    )
-            )
-            .shadow(color: .black.opacity(0.2), radius: 10, x: 0, y: 5)
-    }
-}
-
-extension View {
-    func glassCard(cornerRadius: CGFloat = 20) -> some View {
-        modifier(GlassCard(cornerRadius: cornerRadius))
-    }
-}
-
 // MARK: - Stat Card View
 
 struct StatCardView: View {
@@ -87,7 +37,7 @@ struct StatCardView: View {
         .frame(maxWidth: .infinity)
         .padding(.vertical, 16)
         .padding(.horizontal, 8)
-        .glassCard(cornerRadius: 16)
+        .glassCard(cornerRadius: 16, strokeColor: Color.white, strokeOpacity: 0.12)
     }
 }
 

@@ -295,6 +295,34 @@ class APIService {
         return try await get(endpoint: endpoint, authenticated: true)
     }
 
+    // MARK: - Leveling System
+
+    func fetchUserStats() async throws -> UserStatsResponse {
+        let endpoint = "\(baseURL)/leveling/me"
+        return try await get(endpoint: endpoint, authenticated: true)
+    }
+
+    func fetchUserDimensions() async throws -> UserDimensionsResponse {
+        let endpoint = "\(baseURL)/leveling/me/dimensions"
+        return try await get(endpoint: endpoint, authenticated: true)
+    }
+
+    func fetchDimensions() async throws -> DimensionsListResponse {
+        let endpoint = "\(baseURL)/leveling/dimensions"
+        return try await get(endpoint: endpoint, authenticated: false)
+    }
+
+    func fetchLeaderboard(limit: Int = 20) async throws -> LeaderboardResponse {
+        let endpoint = "\(baseURL)/leveling/leaderboard?limit=\(limit)"
+        return try await get(endpoint: endpoint, authenticated: true)
+    }
+
+    func fetchLevelInfo() async throws -> (level: LevelInfo, rank: RankInfo) {
+        let endpoint = "\(baseURL)/leveling/me/level"
+        let response: LevelRankResponse = try await get(endpoint: endpoint, authenticated: true)
+        return (response.level, response.rank)
+    }
+
     // MARK: - Artifacts
 
     func getCategories() async throws -> [ArtifactCategory] {
@@ -654,6 +682,12 @@ class APIService {
 
 // Helper struct for empty responses
 struct EmptyResponse: Codable {}
+
+// Helper struct for level/rank response
+struct LevelRankResponse: Codable {
+    let level: LevelInfo
+    let rank: RankInfo
+}
 
 // Extension to append string to Data
 extension Data {

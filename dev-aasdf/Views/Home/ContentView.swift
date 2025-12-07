@@ -1,11 +1,11 @@
 //
 //  ContentView.swift
-//  Root view with Liquid Glass TabView
+//  Root view with Liquid Glass TabView - NEW REDESIGN
 //
 
 import SwiftUI
 
-struct ContentView: View {
+struct NewContentView: View {
     @State private var appData = AppData()
     @State private var selectedTab = 0
     
@@ -15,25 +15,25 @@ struct ContentView: View {
     
     var body: some View {
         TabView(selection: $selectedTab) {
-            HomeView()
+            NewHomeView()
                 .tag(0)
                 .tabItem {
                     Label("Home", systemImage: "house.fill")
                 }
             
-            StreakView()
+            NewStreakView()
                 .tag(1)
                 .tabItem {
                     Label("Streak", systemImage: "flame.fill")
                 }
             
-            AddTaskView()
+            NewAddTaskView()
                 .tag(2)
                 .tabItem {
                     Label("Add", systemImage: "plus.circle.fill")
                 }
             
-            ProfileView()
+            NewProfileView()
                 .tag(3)
                 .tabItem {
                     Label("Profile", systemImage: "person.crop.circle")
@@ -46,5 +46,5 @@ struct ContentView: View {
 }
 
 #Preview {
-    ContentView()
+    NewContentView()
 }

@@ -48,7 +48,7 @@ struct NewProfileView: View {
                     .trim(from: 0, to: appData.xpProgress)
                     .stroke(
                         LinearGradient(
-                            colors: [.violetGlow, .violetGlow.opacity(0.6)],
+                            colors: [Color.violetGlow, Color.violetGlow.opacity(0.6)],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         ),
@@ -87,7 +87,7 @@ struct NewProfileView: View {
                 HStack {
                     Image(systemName: "calendar")
                         .font(.title2)
-                        .foregroundStyle(.violetGlow)
+                        .foregroundStyle(Color.violetGlow)
                     
                     Text("Member Since")
                         .font(.subheadline.weight(.medium))
@@ -107,7 +107,7 @@ struct NewProfileView: View {
                 HStack {
                     Image(systemName: "wallet.pass")
                         .font(.title2)
-                        .foregroundStyle(.violetGlow)
+                        .foregroundStyle(Color.violetGlow)
                     
                     Text("Wallet Address")
                         .font(.subheadline.weight(.medium))
@@ -127,7 +127,7 @@ struct NewProfileView: View {
                     } label: {
                         Image(systemName: "doc.on.doc")
                             .font(.title3)
-                            .foregroundStyle(.violetGlow)
+                            .foregroundStyle(Color.violetGlow)
                     }
                 }
             }

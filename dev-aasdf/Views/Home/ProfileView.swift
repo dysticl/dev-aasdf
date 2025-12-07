@@ -5,7 +5,7 @@
 
 import SwiftUI
 
-struct ProfileView: View {
+struct ProfileOverviewView: View {
     @Environment(AppData.self) private var appData
     
     var body: some View {
@@ -227,6 +227,6 @@ struct AchievementRow: View {
 }
 
 #Preview {
-    ProfileView()
+    ProfileOverviewView()
         .environment(AppData())
 }

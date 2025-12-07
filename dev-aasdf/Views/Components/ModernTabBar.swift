@@ -2,7 +2,7 @@
 //  ModernTabBar.swift
 //  dev-aasdf
 //
-//  iOS 18 Clock-app style pill tab bar with Liquid Glass design
+//  iOS 26 Liquid Glass Tab Bar with Solo Leveling HUD Design
 //
 
 import SwiftUI
@@ -12,6 +12,8 @@ struct TabItem: Identifiable {
     let icon: String
     let label: String
 }
+
+// MARK: - Modern Tab Bar (iOS 26 Style)
 
 struct ModernTabBar: View {
     @Binding var selectedTab: Int
@@ -31,7 +33,6 @@ struct ModernTabBar: View {
                     withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
                         selectedTab = index
                     }
-                    // Haptic feedback
                     let impactFeedback = UIImpactFeedbackGenerator(style: .light)
                     impactFeedback.impactOccurred()
                 }
@@ -41,13 +42,10 @@ struct ModernTabBar: View {
         .padding(.vertical, DesignSystem.Spacing.lg)
         .background(
             Capsule()
-                .fill(.ultraThinMaterial)
-                .shadow(color: .black.opacity(0.25), radius: 20, y: 10)
+                .fill(Color.clear)
+                .glassEffect(.regular.interactive(), in: .capsule)
         )
-        .overlay(
-            Capsule()
-                .stroke(Color.white.opacity(0.1), lineWidth: 1)
-        )
+        .shadow(color: AppTheme.accent.opacity(0.2), radius: 20, y: 8)
     }
 }
 
@@ -62,22 +60,21 @@ struct TabBarButton: View {
         Button(action: action) {
             VStack(spacing: DesignSystem.Spacing.xs) {
                 ZStack {
-                    // Selected indicator background
                     if isSelected {
                         Circle()
-                            .fill(LiquidGlassGradients.primary)
+                            .fill(Color.clear)
+                            .glassEffect(.regular.tint(AppTheme.accent).interactive(), in: .circle)
                             .frame(width: 44, height: 44)
-                            .shadow(color: SoloColors.electricBlue.opacity(0.5), radius: 10)
+                            .shadow(color: AppTheme.accent.opacity(0.6), radius: 12)
                             .matchedGeometryEffect(id: "selectedTab", in: namespace)
                     }
 
                     Image(systemName: icon)
                         .font(.system(size: isSelected ? 20 : 22, weight: .medium))
-                        .foregroundColor(isSelected ? .white : SoloColors.textSecondary)
+                        .foregroundColor(isSelected ? .white : .white.opacity(0.5))
                         .frame(width: 44, height: 44)
                 }
 
-                // Label (only visible when selected)
                 Text(label)
                     .font(.system(size: 10, weight: .medium))
                     .foregroundColor(isSelected ? .white : .clear)
@@ -102,13 +99,16 @@ struct MainTabContainer: View {
 
     var body: some View {
         ZStack {
+            // Background - Single unified background
+            AppTheme.background.ignoresSafeArea()
+
             // Tab Content
             Group {
                 switch selectedTab {
                 case 0:
                     HomeContentView()
                 case 1:
-                    ProfileView()
+                    ProfileViewWrapper()
                 default:
                     HomeContentView()
                 }
@@ -123,10 +123,11 @@ struct MainTabContainer: View {
             }
         }
         .ignoresSafeArea(.keyboard)
+        .appChrome()
     }
 }
 
-// MARK: - Home Content View (without bottom bar)
+// MARK: - Home Content View
 
 struct HomeContentView: View {
     @StateObject private var viewModel = ArtifactsViewModel()
@@ -136,10 +137,7 @@ struct HomeContentView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                // Background
-                AmbientGlowBackground()
-
-                // Main Content
+                // Main Content - NO duplicate background here
                 ScrollView {
                     VStack(spacing: DesignSystem.Spacing.xxl) {
                         headerSection
@@ -149,7 +147,7 @@ struct HomeContentView: View {
                     }
                     .padding(.horizontal, DesignSystem.Spacing.xl)
                     .padding(.top, DesignSystem.Spacing.xl)
-                    .padding(.bottom, 140)  // Space for tab bar
+                    .padding(.bottom, 140)
                 }
                 .refreshable {
                     await viewModel.fetchArtifacts()
@@ -164,7 +162,7 @@ struct HomeContentView: View {
                             showCreateSheet = true
                         }
                         .padding(.trailing, DesignSystem.Spacing.xl)
-                        .padding(.bottom, 120)  // Above tab bar
+                        .padding(.bottom, 120)
                     }
                 }
             }
@@ -189,47 +187,49 @@ struct HomeContentView: View {
     private var headerSection: some View {
         HStack {
             VStack(alignment: .leading, spacing: DesignSystem.Spacing.xs) {
-                Text("Willkommen, Hunter")
-                    .font(.system(size: 32, weight: .bold))
-                    .foregroundColor(.white)
-                    .glowEffect(color: SoloColors.electricBlue, radius: 15)
+                Text("WILLKOMMEN, HUNTER")
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundColor(AppTheme.accent.opacity(0.8))
+                    .tracking(3)
 
-                Text("Du hast \(viewModel.pendingCount) offene Aufgaben")
-                    .font(.system(size: 15, weight: .medium))
-                    .foregroundColor(SoloColors.textSecondary)
+                Text("Quest Dashboard")
+                    .font(.system(size: 28, weight: .heavy, design: .rounded))
+                    .foregroundColor(.white)
+                    .soloGlow(color: AppTheme.accent, radius: 10)
+
+                Text("\(viewModel.pendingCount) offene Quests")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(.white.opacity(0.6))
             }
 
             Spacer()
 
-            // Profile Avatar
+            // Profile Avatar with HUD style
             Circle()
-                .fill(.ultraThinMaterial)
+                .fill(Color.clear)
+                .glassEffect(.regular, in: .circle)
                 .frame(width: 50, height: 50)
                 .overlay(
                     Image(systemName: "person.fill")
                         .font(.system(size: 22))
-                        .foregroundColor(SoloColors.textSecondary)
+                        .foregroundColor(.white.opacity(0.7))
                 )
                 .overlay(
                     Circle()
-                        .stroke(
-                            LiquidGlassGradients.primary,
-                            lineWidth: 2
-                        )
+                        .stroke(AppTheme.accent.opacity(0.5), lineWidth: 2)
                 )
-                .shadow(color: SoloColors.electricBlue.opacity(0.3), radius: 10)
+                .shadow(color: AppTheme.accent.opacity(0.4), radius: 10)
         }
     }
 
-    // MARK: - Stats Overview
+    // MARK: - Stats Overview (HUD Style)
 
     private var statsOverview: some View {
         HStack(spacing: DesignSystem.Spacing.md) {
-            StatMiniCard(title: "XP Heute", value: "+0", color: SoloColors.xpGold, icon: "sparkles")
-            StatMiniCard(
-                title: "Streak", value: "0", color: SoloColors.successGreen, icon: "flame.fill")
-            StatMiniCard(
-                title: "Level", value: "1", color: SoloColors.hunterPurple, icon: "star.fill")
+            HUDStatCard(title: "XP", value: "+0", icon: "sparkles", color: AppTheme.xpGold)
+            HUDStatCard(title: "STREAK", value: "0", icon: "flame.fill", color: AppTheme.success)
+            HUDStatCard(
+                title: "LVL", value: "1", icon: "star.fill", color: AppTheme.accentSecondary)
         }
     }
 
@@ -238,25 +238,25 @@ struct HomeContentView: View {
     private var statusTabs: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: DesignSystem.Spacing.md) {
-                StatusTabButton(title: "Alle", isSelected: selectedStatusTab == 0) {
+                HUDTabButton(title: "ALLE", isSelected: selectedStatusTab == 0) {
                     selectedStatusTab = 0
                     viewModel.selectedStatus = nil
                     Task { await viewModel.fetchArtifacts() }
                 }
 
-                StatusTabButton(title: "Pending", isSelected: selectedStatusTab == 1) {
+                HUDTabButton(title: "PENDING", isSelected: selectedStatusTab == 1) {
                     selectedStatusTab = 1
                     viewModel.selectedStatus = "pending"
                     Task { await viewModel.fetchArtifacts() }
                 }
 
-                StatusTabButton(title: "In Progress", isSelected: selectedStatusTab == 2) {
+                HUDTabButton(title: "ACTIVE", isSelected: selectedStatusTab == 2) {
                     selectedStatusTab = 2
                     viewModel.selectedStatus = "in_progress"
                     Task { await viewModel.fetchArtifacts() }
                 }
 
-                StatusTabButton(title: "Completed", isSelected: selectedStatusTab == 3) {
+                HUDTabButton(title: "DONE", isSelected: selectedStatusTab == 3) {
                     selectedStatusTab = 3
                     viewModel.selectedStatus = "completed"
                     Task { await viewModel.fetchArtifacts() }
@@ -271,7 +271,7 @@ struct HomeContentView: View {
         LazyVStack(spacing: DesignSystem.Spacing.md) {
             if viewModel.isLoading && viewModel.artifacts.isEmpty {
                 ProgressView()
-                    .tint(.white)
+                    .tint(AppTheme.accent)
                     .padding(.top, 60)
             } else if viewModel.artifacts.isEmpty {
                 emptyStateView
@@ -281,7 +281,7 @@ struct HomeContentView: View {
                         destination: ArtifactDetailView(
                             artifactId: artifact.id, viewModel: viewModel)
                     ) {
-                        SoloArtifactCard(artifact: artifact)
+                        QuestCard(artifact: artifact)
                     }
                     .buttonStyle(.plain)
                 }
@@ -291,63 +291,146 @@ struct HomeContentView: View {
 
     private var emptyStateView: some View {
         VStack(spacing: DesignSystem.Spacing.lg) {
-            Image(systemName: "tray")
+            Image(systemName: "scroll")
                 .font(.system(size: 56))
-                .foregroundColor(SoloColors.textTertiary)
+                .foregroundColor(AppTheme.accent.opacity(0.4))
+                .soloGlow(color: AppTheme.accent, radius: 15)
 
-            Text("Keine Aufgaben")
-                .font(.system(size: 18, weight: .medium))
-                .foregroundColor(SoloColors.textSecondary)
+            Text("KEINE QUESTS")
+                .font(.system(size: 18, weight: .bold))
+                .foregroundColor(.white.opacity(0.7))
+                .tracking(2)
 
             Text("Erstelle deine erste Quest!")
                 .font(.system(size: 14))
-                .foregroundColor(SoloColors.textTertiary)
+                .foregroundColor(.white.opacity(0.5))
         }
         .padding(.top, 60)
     }
 }
 
-// MARK: - Solo Artifact Card
+// MARK: - HUD Stat Card
 
-struct SoloArtifactCard: View {
+struct HUDStatCard: View {
+    let title: String
+    let value: String
+    let icon: String
+    let color: Color
+
+    var body: some View {
+        VStack(spacing: DesignSystem.Spacing.sm) {
+            Image(systemName: icon)
+                .font(.system(size: 18))
+                .foregroundColor(color)
+                .soloGlow(color: color, radius: 6)
+
+            Text(value)
+                .font(.system(size: 24, weight: .black, design: .rounded))
+                .foregroundStyle(
+                    LinearGradient(
+                        colors: [color, color.opacity(0.7)],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
+                .shadow(color: color.opacity(0.5), radius: 4)
+
+            Text(title)
+                .font(.system(size: 10, weight: .bold))
+                .foregroundColor(.white.opacity(0.5))
+                .tracking(1)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, DesignSystem.Spacing.lg)
+        .background(
+            RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.small)
+                .fill(AppTheme.cardBackground.opacity(0.7))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.small)
+                .stroke(color.opacity(0.3), lineWidth: 1)
+        )
+        .shadow(color: color.opacity(0.2), radius: 8)
+    }
+}
+
+// MARK: - HUD Tab Button
+
+struct HUDTabButton: View {
+    let title: String
+    let isSelected: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Text(title)
+                .font(.system(size: 12, weight: .bold))
+                .tracking(1)
+                .foregroundColor(isSelected ? .white : .white.opacity(0.5))
+                .padding(.horizontal, DesignSystem.Spacing.lg)
+                .padding(.vertical, DesignSystem.Spacing.md)
+                .background(
+                    Capsule()
+                        .fill(isSelected ? AppTheme.accent.opacity(0.25) : Color.clear)
+                )
+                .overlay(
+                    Capsule()
+                        .stroke(
+                            isSelected ? AppTheme.accent.opacity(0.6) : Color.white.opacity(0.15),
+                            lineWidth: 1
+                        )
+                )
+                .shadow(color: isSelected ? AppTheme.accent.opacity(0.3) : .clear, radius: 8)
+        }
+        .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isSelected)
+    }
+}
+
+// MARK: - Quest Card (Solo Leveling Style)
+
+struct QuestCard: View {
     let artifact: Artifact
 
     var statusColor: Color {
         switch artifact.status {
         case "pending": return .gray
-        case "in_progress": return SoloColors.electricBlue
-        case "awaiting_proof": return SoloColors.warningOrange
-        case "completed": return SoloColors.successGreen
-        case "cancelled": return SoloColors.dangerRed
+        case "in_progress": return AppTheme.accent
+        case "awaiting_proof": return AppTheme.warning
+        case "completed": return AppTheme.success
+        case "cancelled": return AppTheme.error
         default: return .gray
+        }
+    }
+
+    var statusIcon: String {
+        switch artifact.status {
+        case "completed": return "checkmark.circle.fill"
+        case "in_progress": return "play.circle.fill"
+        case "awaiting_proof": return "clock.fill"
+        default: return "circle"
         }
     }
 
     var body: some View {
         HStack(spacing: DesignSystem.Spacing.lg) {
-            // Checkbox
-            ZStack {
-                Circle()
-                    .stroke(statusColor.opacity(0.3), lineWidth: 2)
-                    .frame(width: 28, height: 28)
+            // Status Icon
+            Image(systemName: statusIcon)
+                .font(.system(size: 24))
+                .foregroundStyle(
+                    LinearGradient(
+                        colors: [statusColor, statusColor.opacity(0.6)],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
+                .shadow(color: statusColor.opacity(0.5), radius: 6)
+                .frame(width: 32)
 
-                if artifact.status == "completed" {
-                    Circle()
-                        .fill(LiquidGlassGradients.success)
-                        .frame(width: 28, height: 28)
-
-                    Image(systemName: "checkmark")
-                        .font(.system(size: 14, weight: .bold))
-                        .foregroundColor(.white)
-                }
-            }
-            .shadow(color: statusColor.opacity(0.3), radius: 5)
-
-            // Task Info
-            VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
+            // Quest Info
+            VStack(alignment: .leading, spacing: DesignSystem.Spacing.xs) {
                 HStack {
                     Text(artifact.taskName)
-                        .font(.system(size: 16, weight: .semibold))
+                        .font(.system(size: 15, weight: .semibold))
                         .foregroundColor(.white)
                         .lineLimit(2)
 
@@ -356,38 +439,68 @@ struct SoloArtifactCard: View {
                     if let priority = artifact.priority,
                         priority.lowercased() == "high" || priority.lowercased() == "critical"
                     {
-                        PriorityBadge(priority: priority)
+                        Text(priority.uppercased())
+                            .font(.system(size: 9, weight: .black))
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 3)
+                            .background(
+                                Capsule().fill(AppTheme.error)
+                            )
+                            .shadow(color: AppTheme.error.opacity(0.4), radius: 4)
                     }
                 }
 
                 HStack(spacing: DesignSystem.Spacing.sm) {
                     Text(artifact.categoryIcon ?? "📋")
-                        .font(.system(size: 14))
+                        .font(.system(size: 12))
 
-                    Text(artifact.category)
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundColor(SoloColors.textTertiary)
-
-                    Text("•")
-                        .foregroundColor(SoloColors.textTertiary)
+                    Text(artifact.category.uppercased())
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundColor(.white.opacity(0.4))
+                        .tracking(1)
 
                     if let xp = artifact.aiEstimate?.estimatedXp {
-                        HStack(spacing: 2) {
+                        Spacer()
+                        HStack(spacing: 4) {
                             Image(systemName: "sparkles")
                                 .font(.system(size: 10))
-                            Text("\(xp) XP")
-                                .font(.system(size: 12, weight: .bold))
+                            Text("+\(xp) XP")
+                                .font(.system(size: 11, weight: .black))
                         }
-                        .foregroundStyle(LiquidGlassGradients.xpGold)
+                        .foregroundStyle(
+                            LinearGradient(
+                                colors: [AppTheme.xpGold, .orange],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .shadow(color: AppTheme.xpGold.opacity(0.4), radius: 4)
                     }
                 }
             }
         }
-        .liquidGlassCard(statusColor: statusColor, padding: DesignSystem.Spacing.lg)
+        .padding(DesignSystem.Spacing.lg)
+        .background(
+            RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.medium)
+                .fill(AppTheme.cardBackground.opacity(0.8))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.medium)
+                .stroke(statusColor.opacity(0.3), lineWidth: 1)
+        )
+        .shadow(color: statusColor.opacity(0.15), radius: 10, y: 4)
     }
 }
+
+// MARK: - Backward Compatibility Aliases
+
+typealias SoloArtifactCard = QuestCard
+typealias StatusTabButton = HUDTabButton
+typealias StatMiniCard = HUDStatCard
 
 #Preview {
     MainTabContainer()
         .environmentObject(AuthViewModel())
 }
+
