@@ -84,6 +84,8 @@ class AuthViewModel: ObservableObject {
         switch host {
         case "onConnect":
             handleConnectCallback(components: components)
+        case "onSignMessage":
+            handleSignMessageCallback(components: components)
         case "onDisconnect":
             logout()
         default:
@@ -233,13 +235,23 @@ class AuthViewModel: ObservableObject {
                 throw CryptoError.decryptionFailed
             }
 
-            logger.info("Session string length: \(sessionString.count)")
             logger.info("Connected wallet: \(publicKey)")
+            self.session = sessionString
 
-            // Direkt zum Backend - keine signMessage mehr nötig!
+            // Step 2: Request Nonce from Backend
             Task {
-                await authenticateWithSession(
-                    walletAddress: publicKey, phantomSession: sessionString)
+                do {
+                    let nonceResponse = try await apiService.getNonce(walletAddress: publicKey)
+                    logger.info("Got nonce: \(nonceResponse.nonce)")
+
+                    // Step 3: Sign Message via Phantom
+                    openPhantomSignMessage(
+                        message: nonceResponse.message, nonce: nonceResponse.nonce,
+                        walletAddress: publicKey)
+                } catch {
+                    logger.error("Failed to get nonce: \(error.localizedDescription)")
+                    showErrorAlert("Failed to initialize login sequence")
+                }
             }
 
         } catch {
@@ -249,37 +261,113 @@ class AuthViewModel: ObservableObject {
         }
     }
 
-    private func authenticateWithSession(walletAddress: String, phantomSession: String) async {
-        do {
-            let response = try await apiService.connectWallet(
-                walletAddress: walletAddress,
-                phantomSession: phantomSession,
-                network: network
+    private func openPhantomSignMessage(message: String, nonce: String, walletAddress: String) {
+        guard let kp = keyPair, let phantomKey = phantomPublicKey else { return }
+        self.pendingNonce = nonce
+        self.pendingWalletAddress = walletAddress
+
+        let payload = ["message": message, "session": session ?? ""]
+
+        guard let payloadData = try? JSONSerialization.data(withJSONObject: payload),
+            let encryptedPayload = sodium.box.seal(
+                message: payloadData,
+                recipientPublicKey: phantomKey,
+                senderSecretKey: kp.secretKey
             )
-
-            KeychainHelper.shared.saveToken(response.accessToken)
-
-            let user = try await apiService.getCurrentUser()
-            self.currentUser = user
-            self.isAuthenticated = true
-
-            let welcomeText =
-                response.isNewUser
-                ? "Welcome, new Hunter! Balance: \(String(format: "%.4f", response.balanceSol)) SOL"
-                : "Welcome back! Balance: \(String(format: "%.4f", response.balanceSol)) SOL"
-            showWelcome(message: welcomeText)
-
-            logger.info("Authentication successful for user: \(response.userId)")
-
-        } catch let error as APIError {
-            logger.error("Authentication failed: \(error.localizedDescription)")
-            showErrorAlert(error.message)
-        } catch {
-            logger.error("Authentication failed: \(error.localizedDescription)")
-            showErrorAlert("Authentication failed: \(error.localizedDescription)")
+        else {
+            showErrorAlert("Encryption failed")
+            return
         }
 
-        isLoading = false
+        let payloadBase58 = Base58.encode(encryptedPayload)
+        let publicKeyBase58 = Base58.encode(kp.publicKey)
+
+        var components = URLComponents()
+        components.scheme = "phantom"
+        components.host = "v1"
+        components.path = "/signMessage"
+        components.queryItems = [
+            URLQueryItem(name: "dapp_encryption_public_key", value: publicKeyBase58),
+            URLQueryItem(name: "nonce", value: Base58.encode(sodium.randomBytes.buf(length: 24)!)),
+            URLQueryItem(name: "redirect_link", value: "aasdf://onSignMessage"),
+            URLQueryItem(name: "payload", value: payloadBase58),
+        ]
+
+        if let url = components.url {
+            UIApplication.shared.open(url)
+        }
+    }
+
+    private func handleSignMessageCallback(components: URLComponents) {
+        guard let params = components.queryItems,
+            let nonceBase58 = params.first(where: { $0.name == "nonce" })?.value,
+            let dataBase58 = params.first(where: { $0.name == "data" })?.value,
+            let nonceBytes = Base58.decode(nonceBase58),
+            let encryptedData = Base58.decode(dataBase58),
+            let kp = keyPair,
+            let phantomKey = phantomPublicKey
+        else {
+            showErrorAlert("Invalid sign callback")
+            return
+        }
+
+        guard
+            let decryptedBytes = sodium.box.open(
+                authenticatedCipherText: encryptedData,
+                senderPublicKey: phantomKey,
+                recipientSecretKey: kp.secretKey,
+                nonce: nonceBytes
+            )
+        else {
+            showErrorAlert("Decryption failed")
+            return
+        }
+
+        do {
+            let decryptedData = Data(decryptedBytes)
+            guard
+                let json = try JSONSerialization.jsonObject(with: decryptedData) as? [String: Any],
+                let signature = json["signature"] as? String
+            else {
+                showErrorAlert("Invalid signature format")
+                return
+            }
+
+            guard let walletAddress = pendingWalletAddress, let nonce = pendingNonce else {
+                showErrorAlert("State lost")
+                return
+            }
+
+            // Step 4: Verify Signature
+            Task {
+                do {
+                    let response = try await apiService.verifySignature(
+                        walletAddress: walletAddress,
+                        signature: signature,
+                        nonce: nonce
+                    )
+
+                    KeychainHelper.shared.saveToken(response.accessToken)
+
+                    let user = try await apiService.getCurrentUser()
+                    self.currentUser = user
+                    self.isAuthenticated = true
+
+                    let welcomeText =
+                        response.isNewUser
+                        ? "Welcome, new Hunter! Balance: \(String(format: "%.4f", response.balanceSol)) SOL"
+                        : "Welcome back! Balance: \(String(format: "%.4f", response.balanceSol)) SOL"
+                    showWelcome(message: welcomeText)
+
+                } catch {
+                    logger.error("Verification failed: \(error.localizedDescription)")
+                    showErrorAlert("Login failed: \(error.localizedDescription)")
+                }
+                isLoading = false
+            }
+        } catch {
+            showErrorAlert("Data error")
+        }
     }
 
     private func showErrorAlert(_ message: String) {

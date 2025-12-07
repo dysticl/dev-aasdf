@@ -15,8 +15,8 @@ enum AppTheme {
     // Dark Fantasy Background - Pure Black mit subtilen Glows
     static var background: some View {
         ZStack {
-            // Pure Black Base (#000000)
-            Color.black
+            // Dark Fantasy Base
+            Color.shadowBackground
 
             // Subtle neon-blue glow - top
             RadialGradient(
@@ -135,6 +135,12 @@ extension View {
 // MARK: - Color Extension
 
 extension Color {
+    // Shadow Theme Colors
+    static let shadowBackground = Color(hex: "0D1B2A")
+    static let violetGlow = Color(hex: "512DA8")
+    static let shadowText = Color.white.opacity(0.9)
+    static let shadowTextSecondary = Color.white.opacity(0.6)
+
     init(hex: String) {
         let hex = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
         var int: UInt64 = 0

@@ -45,10 +45,6 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
-				Views/Home/AddTaskView.swift,
-				Views/Home/ContentView.swift,
-				"Views/Home/HomeView 2.swift",
-				Views/Home/ProfileView.swift,
 				Views/Profile/ProfileView.swift,
 			);
 			target = 65F3E14F2EE0EA5B002909B5 /* dev-aasdf */;

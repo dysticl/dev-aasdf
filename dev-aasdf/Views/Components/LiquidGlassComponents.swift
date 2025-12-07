@@ -321,3 +321,28 @@ struct AmbientGlowBackground: View {
         }
     }
 }
+
+// MARK: - Shadow Theme Modifiers
+
+extension View {
+    /// Applies perfect Liquid Glass effect with dark overlay
+    func shadowLiquidGlass(cornerRadius: CGFloat = 20) -> some View {
+        self
+            .background(
+                RoundedRectangle(cornerRadius: cornerRadius)
+                    .fill(.ultraThinMaterial)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: cornerRadius)
+                            .fill(SoloColors.cardBackground.opacity(0.7))
+                    )
+            )
+            .shadow(color: Color.black.opacity(0.2), radius: 10, y: 5)
+    }
+
+    /// Violet glow effect for progress bars and accents
+    func violetGlow() -> some View {
+        self
+            .shadow(color: Color.violetGlow.opacity(0.6), radius: 12, y: 4)
+            .shadow(color: Color.violetGlow.opacity(0.3), radius: 24, y: 8)
+    }
+}

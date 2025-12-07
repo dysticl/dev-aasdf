@@ -2,7 +2,7 @@
 //  ProfileView.swift
 //  dev-aasdf
 //
-//  Solo Leveling Profile View with Liquid Glass design
+//  Solo Leveling Profile View with Circular XP Ring & Liquid Glass
 //
 
 import SwiftUI
@@ -12,10 +12,17 @@ struct ProfileView: View {
     @StateObject private var viewModel = ProfileViewModel()
     @FocusState private var isUsernameFocused: Bool
 
+    // Calculated progress for XP Ring
+    var xpProgress: Double {
+        guard let profile = viewModel.profile, profile.nextLevelExp > 0 else { return 0.0 }
+        return Double(profile.currentExp) / Double(profile.nextLevelExp)
+    }
+
     var body: some View {
         NavigationStack {
             ZStack {
-                // Removed AmbientGlowBackground, replaced with solid background
+                // Background
+                Color.shadowBackground.ignoresSafeArea()
 
                 if viewModel.isLoading && viewModel.profile == nil {
                     ProgressView()
@@ -23,25 +30,32 @@ struct ProfileView: View {
                 } else {
                     ScrollView {
                         VStack(spacing: DesignSystem.Spacing.xxl) {
-                            profileHeader
+                            // Circular XP Header
+                            circularHeader
+
+                            // Username Input
+                            usernameSection
+
+                            // Hunter Stats
                             statsRow
-                            infoSection
+
+                            // Info Cards
+                            infoCardsSection
 
                             Spacer(minLength: 40)
 
+                            // Danger Zone
                             dangerZone
                         }
-                        .padding(.bottom, 140)  // Space for tab bar
+                        .padding(.vertical, 32)
+                        .padding(.bottom, 100)
                     }
                     .refreshable {
                         await viewModel.reloadProfile()
                     }
                 }
             }
-            // Single background - no duplicate
         }
-        .appBackground()
-        .appChrome()
         .task {
             if viewModel.profile == nil {
                 await viewModel.loadData()
@@ -82,117 +96,109 @@ struct ProfileView: View {
         }
     }
 
-    // MARK: - Profile Header
+    // MARK: - Circular Header
 
-    private var profileHeader: some View {
-        VStack(spacing: DesignSystem.Spacing.xl) {
-            // Profile Picture with Gradient Border
+    private var circularHeader: some View {
+        VStack(spacing: 20) {
             ZStack {
-                // Animated gradient border
+                // Background circle
                 Circle()
+                    .stroke(Color.white.opacity(0.1), lineWidth: 12)
+                    .frame(width: 160, height: 160)
+
+                // Progress circle
+                Circle()
+                    .trim(from: 0, to: xpProgress)
                     .stroke(
-                        AngularGradient(
-                            colors: [
-                                SoloColors.electricBlue,
-                                SoloColors.hunterPurple,
-                                SoloColors.xpGold,
-                                SoloColors.electricBlue,
-                            ],
-                            center: .center
+                        LinearGradient(
+                            colors: [.violetGlow, .violetGlow.opacity(0.6)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
                         ),
-                        lineWidth: 3
+                        style: StrokeStyle(lineWidth: 12, lineCap: .round)
                     )
-                    .frame(width: 130, height: 130)
-                    .shadow(color: SoloColors.electricBlue.opacity(0.4), radius: 15)
+                    .frame(width: 160, height: 160)
+                    .rotationEffect(.degrees(-90))
+                    .violetGlow()
 
-                if let urlString = viewModel.profile?.profilePicUrl,
-                    let url = URL(string: urlString)
-                {
-                    AsyncImage(url: url) { phase in
-                        switch phase {
-                        case .empty:
-                            ProgressView().tint(.white)
-                        case .success(let image):
-                            image
-                                .resizable()
-                                .aspectRatio(contentMode: .fill)
-                        case .failure:
-                            Image(systemName: "person.fill")
-                                .resizable()
-                                .foregroundColor(SoloColors.textTertiary)
-                                .padding(30)
-                        @unknown default:
-                            EmptyView()
-                        }
-                    }
-                    .frame(width: 120, height: 120)
-                    .clipShape(Circle())
-                    .id(urlString)
-                } else {
-                    Circle()
-                        .fill(Color.clear)
-                        .frame(width: 120, height: 120)
-                        .glassEffect(.regular, in: .circle)
-                        .overlay(
-                            Image(systemName: "person.fill")
-                                .resizable()
-                                .foregroundColor(SoloColors.textTertiary)
-                                .padding(30)
-                        )
-                }
-
-                // Camera Button
+                // Content inside circle (Profile Pic or Info)
                 Button(action: { viewModel.showActionSheet = true }) {
                     ZStack {
-                        Circle()
-                            .fill(Color.clear)
-                            .glassEffect(.regular, in: .circle)
-                            .frame(width: 40, height: 40)
-                            .overlay(
-                                Circle().stroke(Color.white.opacity(0.2), lineWidth: 1)
-                            )
-                            .shadow(color: .black.opacity(0.3), radius: 5)
+                        if let urlString = viewModel.profile?.profilePicUrl,
+                            let url = URL(string: urlString)
+                        {
+                            AsyncImage(url: url) { phase in
+                                switch phase {
+                                case .success(let image):
+                                    image.resizable().aspectRatio(contentMode: .fill)
+                                default:
+                                    Color.black.opacity(0.5)
+                                }
+                            }
+                        } else {
+                            // Default Level display if no image
+                            VStack(spacing: 4) {
+                                Text("LV.")
+                                    .font(.caption.weight(.medium))
+                                    .foregroundStyle(Color.shadowTextSecondary)
 
-                        Image(systemName: "camera.fill")
-                            .foregroundColor(.white)
-                            .font(.system(size: 16))
-                    }
-                }
-                .offset(x: 45, y: 45)
-            }
-            .padding(.top, DesignSystem.Spacing.xl)
-
-            // Username / Codename
-            VStack(spacing: DesignSystem.Spacing.sm) {
-                Text("CODENAME")
-                    .font(.system(size: 10, weight: .bold))
-                    .foregroundColor(SoloColors.textTertiary)
-                    .tracking(2)
-
-                HStack(spacing: DesignSystem.Spacing.sm) {
-                    TextField("Username", text: $viewModel.username)
-                        .multilineTextAlignment(.center)
-                        .font(.system(size: 26, weight: .bold))
-                        .foregroundColor(.white)
-                        .autocapitalization(.none)
-                        .disableAutocorrection(true)
-                        .focused($isUsernameFocused)
-                        .submitLabel(.done)
-
-                    if viewModel.isSaving {
-                        ProgressView().tint(.white)
-                            .scaleEffect(0.8)
-                    } else if viewModel.username != viewModel.profile?.username
-                        && !viewModel.username.isEmpty
-                    {
-                        Button(action: {
-                            isUsernameFocused = false
-                            Task { await viewModel.updateUsername() }
-                        }) {
-                            Image(systemName: "checkmark.circle.fill")
-                                .foregroundColor(SoloColors.successGreen)
-                                .font(.title3)
+                                Text("\(viewModel.profile?.level ?? 1)")
+                                    .font(.system(size: 48, weight: .bold, design: .rounded))
+                                    .foregroundStyle(Color.shadowText)
+                            }
                         }
+                    }
+                    .frame(width: 130, height: 130)
+                    .clipShape(Circle())
+                }
+
+                // Edit Icon Badge
+                Image(systemName: "camera.fill")
+                    .font(.caption)
+                    .padding(6)
+                    .background(Circle().fill(Color.violetGlow))
+                    .offset(x: 50, y: 50)
+            }
+
+            // XP Text
+            Text("\(Int(xpProgress * 100))% to next level")
+                .font(.subheadline)
+                .foregroundStyle(Color.shadowTextSecondary)
+        }
+    }
+
+    // MARK: - Username Section
+
+    private var usernameSection: some View {
+        VStack(spacing: DesignSystem.Spacing.sm) {
+            Text("CODENAME")
+                .font(.system(size: 10, weight: .bold))
+                .foregroundColor(SoloColors.textTertiary)
+                .tracking(2)
+
+            HStack(spacing: DesignSystem.Spacing.sm) {
+                TextField("Username", text: $viewModel.username)
+                    .multilineTextAlignment(.center)
+                    .font(.system(size: 26, weight: .bold))
+                    .foregroundColor(.white)
+                    .autocapitalization(.none)
+                    .disableAutocorrection(true)
+                    .focused($isUsernameFocused)
+                    .submitLabel(.done)
+
+                if viewModel.isSaving {
+                    ProgressView().tint(.white)
+                        .scaleEffect(0.8)
+                } else if viewModel.username != viewModel.profile?.username
+                    && !viewModel.username.isEmpty
+                {
+                    Button(action: {
+                        isUsernameFocused = false
+                        Task { await viewModel.updateUsername() }
+                    }) {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundColor(SoloColors.successGreen)
+                            .font(.title3)
                     }
                 }
             }
@@ -205,13 +211,8 @@ struct ProfileView: View {
         HStack(spacing: DesignSystem.Spacing.md) {
             ProfileStatCard(
                 title: "Intel",
-                value: viewModel.intelligenceData.map {
-                    if let score = $0.intelligenceTotalScore {
-                        return String(Int(score))
-                    } else {
-                        return "—"
-                    }
-                } ?? "—",
+                value: viewModel.intelligenceData?.intelligenceTotalScore.map { String(Int($0)) }
+                    ?? "—",
                 icon: "brain.head.profile",
                 color: SoloColors.electricBlue,
                 isLoading: viewModel.intelligenceData == nil && viewModel.isLoading
@@ -219,9 +220,7 @@ struct ProfileView: View {
 
             ProfileStatCard(
                 title: "Strength",
-                value: viewModel.strengthData.map {
-                    String(Int($0.strengthTotalScore))
-                } ?? "—",
+                value: viewModel.strengthData?.strengthTotalScore.map { String(Int($0)) } ?? "—",
                 icon: "flame.fill",
                 color: SoloColors.dangerRed,
                 isLoading: viewModel.strengthData == nil && viewModel.isLoading
@@ -229,13 +228,8 @@ struct ProfileView: View {
 
             ProfileStatCard(
                 title: "Discipline",
-                value: viewModel.disciplineData.map {
-                    if let score = $0.disciplineTotalScore {
-                        return String(Int(score))
-                    } else {
-                        return "—"
-                    }
-                } ?? "—",
+                value: viewModel.disciplineData?.disciplineTotalScore.map { String(Int($0)) }
+                    ?? "—",
                 icon: "target",
                 color: SoloColors.hunterPurple,
                 isLoading: viewModel.disciplineData == nil && viewModel.isLoading
@@ -243,49 +237,76 @@ struct ProfileView: View {
 
             ProfileStatCard(
                 title: "Health",
-                value: viewModel.healthData.map {
-                    if let score = $0.healthTotalScore {
-                        return String(Int(score))
-                    } else {
-                        return "—"
-                    }
-                } ?? "—",
+                value: viewModel.healthData?.healthTotalScore.map { String(Int($0)) } ?? "—",
                 icon: "heart.fill",
                 color: SoloColors.successGreen,
                 isLoading: viewModel.healthData == nil && viewModel.isLoading
             )
         }
-        .padding(.horizontal, DesignSystem.Spacing.xl)
+        .padding(.horizontal, 24)
     }
 
-    // MARK: - Info Section
+    // MARK: - Info Cards Section
 
-    private var infoSection: some View {
-        VStack(spacing: DesignSystem.Spacing.lg) {
-            ProfileInfoRow(
-                title: "MEMBER SINCE",
-                value: viewModel.profile?.formattedJoinDate ?? "Loading...",
-                icon: "calendar"
-            )
+    private var infoCardsSection: some View {
+        VStack(spacing: 16) {
+            // Member Since Card
+            VStack(alignment: .leading, spacing: 12) {
+                HStack {
+                    Image(systemName: "calendar")
+                        .font(.title2)
+                        .foregroundStyle(Color.violetGlow)
 
-            Divider().background(Color.white.opacity(0.1))
-
-            Button(action: {
-                if let address = viewModel.profile?.walletAddress {
-                    UIPasteboard.general.string = address
-                    let impactFeedback = UIImpactFeedbackGenerator(style: .light)
-                    impactFeedback.impactOccurred()
+                    Text("Member Since")
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(Color.shadowTextSecondary)
                 }
-            }) {
-                ProfileInfoRow(
-                    title: "WALLET ADDRESS",
-                    value: viewModel.shortAddress(viewModel.profile?.walletAddress),
-                    icon: "doc.on.doc"
-                )
+
+                Text(viewModel.profile?.formattedJoinDate ?? "Loading...")
+                    .font(.title3.weight(.semibold))
+                    .foregroundStyle(Color.shadowText)
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(24)
+            .shadowLiquidGlass(cornerRadius: 20)
+
+            // Wallet Address Card
+            VStack(alignment: .leading, spacing: 12) {
+                HStack {
+                    Image(systemName: "wallet.pass")
+                        .font(.title2)
+                        .foregroundStyle(Color.violetGlow)
+
+                    Text("Wallet Address")
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(Color.shadowTextSecondary)
+                }
+
+                HStack {
+                    Text(viewModel.shortAddress(viewModel.profile?.walletAddress))
+                        .font(.system(.body, design: .monospaced))
+                        .foregroundStyle(Color.shadowText)
+
+                    Spacer()
+
+                    Button {
+                        if let addr = viewModel.profile?.walletAddress {
+                            UIPasteboard.general.string = addr
+                            let generator = UIImpactFeedbackGenerator(style: .medium)
+                            generator.impactOccurred()
+                        }
+                    } label: {
+                        Image(systemName: "doc.on.doc")
+                            .font(.title3)
+                            .foregroundStyle(Color.violetGlow)
+                    }
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(24)
+            .shadowLiquidGlass(cornerRadius: 20)
         }
-        .glassCard(cornerRadius: DesignSystem.CornerRadius.large)
-        .padding(.horizontal, DesignSystem.Spacing.xl)
+        .padding(.horizontal, 24)
     }
 
     // MARK: - Danger Zone
@@ -309,7 +330,7 @@ struct ProfileView: View {
     }
 }
 
-// MARK: - Profile Stat Card
+// MARK: - Helper Components
 
 struct ProfileStatCard: View {
     let title: String
@@ -351,39 +372,4 @@ struct ProfileStatCard: View {
             strokeColor: color,
             strokeOpacity: 0.2)
     }
-}
-
-// MARK: - Profile Info Row
-
-struct ProfileInfoRow: View {
-    let title: String
-    let value: String
-    var icon: String? = nil
-
-    var body: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: DesignSystem.Spacing.xs) {
-                Text(title)
-                    .font(.system(size: 10, weight: .bold))
-                    .foregroundColor(SoloColors.textTertiary)
-                    .tracking(1)
-                Text(value)
-                    .font(.system(size: 16, weight: .medium))
-                    .foregroundColor(.white)
-            }
-            Spacer()
-            if let iconName = icon {
-                Image(systemName: iconName)
-                    .foregroundColor(SoloColors.textTertiary)
-                    .font(.system(size: 14))
-            }
-        }
-    }
-}
-
-#Preview {
-    ProfileView()
-        .environmentObject(AuthViewModel())
-        .appChrome()
-        .appBackground()
 }

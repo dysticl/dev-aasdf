@@ -167,13 +167,22 @@ class APIService {
 
     // MARK: - Auth Endpoints
 
-    func connectWallet(walletAddress: String, phantomSession: String, network: String) async throws
+    func getNonce(walletAddress: String) async throws -> NonceResponse {
+        let endpoint = "\(baseURL)/auth/nonce"
+        let body = NonceRequest(walletAddress: walletAddress, network: "devnet")
+        return try await post(endpoint: endpoint, body: body)
+    }
+
+    func verifySignature(walletAddress: String, signature: String, nonce: String) async throws
         -> VerifyResponse
     {
-        let endpoint = "\(baseURL)/auth/connect"
-        let body = ConnectRequest(
-            walletAddress: walletAddress, phantomSession: phantomSession, network: network)
-
+        let endpoint = "\(baseURL)/auth/verify"
+        let body = VerifyRequest(
+            walletAddress: walletAddress,
+            signature: signature,
+            nonce: nonce,
+            network: "devnet"
+        )
         return try await post(endpoint: endpoint, body: body)
     }
 
