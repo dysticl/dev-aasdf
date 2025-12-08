@@ -359,5 +359,5 @@ struct ActionButton: View {
 
 // Extension to make CompletionResponse identifiable for FullScreenCover
 extension CompletionResponse: Identifiable {
-    var id: String { artifactId }
+    public var id: String { artifactId }
 }

@@ -7,18 +7,17 @@
 
 import SwiftUI
 
-struct ProfileView: View {
+public struct ProfileView: View {
     @EnvironmentObject var authViewModel: AuthViewModel
     @StateObject private var viewModel = ProfileViewModel()
     @FocusState private var isUsernameFocused: Bool
 
     // Calculated progress for XP Ring
     var xpProgress: Double {
-        guard let profile = viewModel.profile, profile.nextLevelExp > 0 else { return 0.0 }
-        return Double(profile.currentExp) / Double(profile.nextLevelExp)
+        return viewModel.getXpProgress()
     }
 
-    var body: some View {
+    public var body: some View {
         NavigationStack {
             ZStack {
                 // Background
@@ -142,7 +141,7 @@ struct ProfileView: View {
                                     .font(.caption.weight(.medium))
                                     .foregroundStyle(Color.shadowTextSecondary)
 
-                                Text("\(viewModel.profile?.level ?? 1)")
+                                Text("\(viewModel.getLevel())")
                                     .font(.system(size: 48, weight: .bold, design: .rounded))
                                     .foregroundStyle(Color.shadowText)
                             }
@@ -211,8 +210,7 @@ struct ProfileView: View {
         HStack(spacing: DesignSystem.Spacing.md) {
             ProfileStatCard(
                 title: "Intel",
-                value: viewModel.intelligenceData?.intelligenceTotalScore.map { String(Int($0)) }
-                    ?? "—",
+                value: viewModel.getIntelligenceScore(),
                 icon: "brain.head.profile",
                 color: SoloColors.electricBlue,
                 isLoading: viewModel.intelligenceData == nil && viewModel.isLoading
@@ -220,7 +218,7 @@ struct ProfileView: View {
 
             ProfileStatCard(
                 title: "Strength",
-                value: viewModel.strengthData?.strengthTotalScore.map { String(Int($0)) } ?? "—",
+                value: viewModel.getStrengthScore(),
                 icon: "flame.fill",
                 color: SoloColors.dangerRed,
                 isLoading: viewModel.strengthData == nil && viewModel.isLoading
@@ -228,8 +226,7 @@ struct ProfileView: View {
 
             ProfileStatCard(
                 title: "Discipline",
-                value: viewModel.disciplineData?.disciplineTotalScore.map { String(Int($0)) }
-                    ?? "—",
+                value: viewModel.getDisciplineScore(),
                 icon: "target",
                 color: SoloColors.hunterPurple,
                 isLoading: viewModel.disciplineData == nil && viewModel.isLoading
@@ -237,7 +234,7 @@ struct ProfileView: View {
 
             ProfileStatCard(
                 title: "Health",
-                value: viewModel.healthData?.healthTotalScore.map { String(Int($0)) } ?? "—",
+                value: viewModel.getHealthScore(),
                 icon: "heart.fill",
                 color: SoloColors.successGreen,
                 isLoading: viewModel.healthData == nil && viewModel.isLoading

@@ -186,6 +186,16 @@ class APIService {
         return try await post(endpoint: endpoint, body: body)
     }
 
+    func connectWallet(walletAddress: String, phantomSession: String, network: String) async throws
+        -> VerifyResponse
+    {
+        let endpoint = "\(baseURL)/auth/connect"
+        let body = ConnectRequest(
+            walletAddress: walletAddress, phantomSession: phantomSession, network: network)
+
+        return try await post(endpoint: endpoint, body: body)
+    }
+
     func getCurrentUser() async throws -> UserData {
         let endpoint = "\(baseURL)/auth/me"
         return try await get(endpoint: endpoint, authenticated: true)

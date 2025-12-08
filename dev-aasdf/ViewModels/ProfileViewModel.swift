@@ -39,6 +39,7 @@ class ProfileViewModel: ObservableObject {
         await loadIntelligence()
         await loadHealth()
         await loadDiscipline()
+        await loadLevelInfo()
         isLoading = false
     }
 
@@ -49,6 +50,7 @@ class ProfileViewModel: ObservableObject {
         await loadIntelligence()
         await loadHealth()
         await loadDiscipline()
+        await loadLevelInfo()
     }
 
     func loadProfile() async {
@@ -96,6 +98,16 @@ class ProfileViewModel: ObservableObject {
             self.disciplineData = data
         } catch {
             print("Failed to load discipline data: \(error.localizedDescription)")
+        }
+    }
+
+    func loadLevelInfo() async {
+        do {
+            let (level, rank) = try await apiService.fetchLevelInfo()
+            self.levelInfo = level
+            self.rankInfo = rank
+        } catch {
+            print("Failed to load level info: \(error.localizedDescription)")
         }
     }
 
@@ -160,6 +172,43 @@ class ProfileViewModel: ObservableObject {
             showError = true
             isLoading = false
         }
+    }
+
+    @Published var levelInfo: LevelInfo?
+    @Published var rankInfo: RankInfo?
+
+    // Helpers for View
+    func getStrengthScore() -> String {
+        guard let score = strengthData?.strengthTotalScore else { return "—" }
+        return String(Int(score))
+    }
+
+    func getIntelligenceScore() -> String {
+        guard let score = intelligenceData?.intelligenceTotalScore else { return "—" }
+        return String(Int(score))
+    }
+
+    func getHealthScore() -> String {
+        guard let score = healthData?.healthTotalScore else { return "—" }
+        return String(Int(score))
+    }
+
+    func getDisciplineScore() -> String {
+        guard let score = disciplineData?.disciplineTotalScore else { return "—" }
+        return String(Int(score))
+    }
+
+    func getLevel() -> Int {
+        return levelInfo?.level ?? 1
+    }
+
+    func getXpProgress() -> Double {
+        return levelInfo?.progressRatio ?? 0.0
+    }
+
+    func getNextLevelXpPercent() -> String {
+        let percent = Int((levelInfo?.progressRatio ?? 0.0) * 100)
+        return "\(percent)% to next level"
     }
 
     func shortAddress(_ address: String?) -> String {

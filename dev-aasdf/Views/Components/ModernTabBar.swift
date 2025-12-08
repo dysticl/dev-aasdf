@@ -108,7 +108,7 @@ struct MainTabContainer: View {
                 case 0:
                     HomeContentView()
                 case 1:
-                    ProfileViewWrapper()
+                    ProfileView()
                 default:
                     HomeContentView()
                 }
@@ -503,4 +503,3 @@ typealias StatMiniCard = HUDStatCard
     MainTabContainer()
         .environmentObject(AuthViewModel())
 }
-

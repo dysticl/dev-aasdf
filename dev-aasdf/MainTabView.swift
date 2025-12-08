@@ -30,6 +30,13 @@ struct MainTabView: View {
                     Label("Status", systemImage: "chart.bar.fill")
                 }
 
+            // Leaderboard
+            LeaderboardView()
+                .tag(2)
+                .tabItem {
+                    Label("Ranks", systemImage: "list.number")
+                }
+
             // Profile
             ProfileView()
                 .tag(3)

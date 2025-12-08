@@ -18,7 +18,7 @@ struct HomeView: View {
                 // NEW: Shadow Background statt AmbientGlowBackground
                 Color.shadowBackground
                     .ignoresSafeArea()
-                
+
                 // Main Content
                 ScrollView {
                     VStack(spacing: 24) {
@@ -80,7 +80,7 @@ struct HomeView: View {
 
             Spacer()
 
-            NavigationLink(destination: ProfileViewWrapper()) {
+            NavigationLink(destination: ProfileView()) {
                 Circle()
                     .fill(Color.violetGlow.opacity(0.2))
                     .frame(width: 44, height: 44)

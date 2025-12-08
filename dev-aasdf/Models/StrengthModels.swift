@@ -7,12 +7,12 @@
 
 import Foundation
 
-struct TodayStrengthResponse: Codable {
-    let scoreDate: String
-    let strengthKraftScore: Double
-    let strengthCardioScore: Double
-    let strengthTotalScore: Double
-    let hasData: Bool
+public struct TodayStrengthResponse: Codable {
+    public let scoreDate: String
+    public let strengthKraftScore: Double
+    public let strengthCardioScore: Double
+    public let strengthTotalScore: Double
+    public let hasData: Bool
 
     enum CodingKeys: String, CodingKey {
         case scoreDate = "score_date"
@@ -20,5 +20,16 @@ struct TodayStrengthResponse: Codable {
         case strengthCardioScore = "strength_cardio_score"
         case strengthTotalScore = "strength_total_score"
         case hasData = "has_data"
+    }
+
+    public init(
+        scoreDate: String, strengthKraftScore: Double, strengthCardioScore: Double,
+        strengthTotalScore: Double, hasData: Bool
+    ) {
+        self.scoreDate = scoreDate
+        self.strengthKraftScore = strengthKraftScore
+        self.strengthCardioScore = strengthCardioScore
+        self.strengthTotalScore = strengthTotalScore
+        self.hasData = hasData
     }
 }

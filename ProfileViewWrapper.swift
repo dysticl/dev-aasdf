@@ -5,11 +5,8 @@
 
 import SwiftUI
 
-struct ProfileViewWrapper: View {
-    @State private var appData = AppData()
-    
-    var body: some View {
-        NewProfileView()
-            .environment(appData)
-    }
-}
+// struct ProfileViewWrapper: View {
+//     var body: some View {
+//         ProfileView()
+//     }
+// }
