@@ -28,6 +28,14 @@ struct LiquidGlassView: View {
 }
 
 struct ModernHomeView: View {
+    // State für API-Daten
+    @State private var daystrikeData: DaystrikeResponse?
+    @State private var isLoadingStreak = false
+    @State private var streakError: String?
+    
+    // Placeholder User-ID (sollte aus Ihrem Auth-Service kommen)
+    private let currentUserId = "user_123"
+
     var body: some View {
         ScrollView {
             VStack(spacing: 24) {
@@ -46,8 +54,37 @@ struct ModernHomeView: View {
                 // Stats Row
                 HStack(spacing: 12) {
                     HunterStatBadge(title: "Level", value: "42", icon: "arrow.up.circle.fill", color: .yellow)
-                    HunterStatBadge(title: "Streak", value: "12", icon: "flame.fill", color: .red)
+                    
+                    // Daystrike Integration: Zeigt Ladezustand oder echten Wert
+                    HunterStatBadge(
+                        title: "Streak", 
+                        value: isLoadingStreak ? "..." : "\(daystrikeData?.newStreak ?? 0)", 
+                        icon: "flame.fill", 
+                        color: .red
+                    )
+                    
                     HunterStatBadge(title: "XP", value: "85%", icon: "bolt.fill", color: .blue)
+                }
+                
+                // Optional: Longest Streak Anzeige (falls verfügbar)
+                if let longest = daystrikeData?.longestStreak {
+                    HStack {
+                        Image(systemName: "trophy.fill")
+                            .foregroundStyle(.yellow)
+                        Text("Längster Streak: \(longest) Tage")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        Spacer()
+                    }
+                    .padding(.horizontal, 4)
+                }
+                
+                // Fehlermeldung bei API-Problemen
+                if let error = streakError {
+                    Text("Konnte Streak nicht laden: \(error)")
+                        .font(.caption)
+                        .foregroundStyle(.red)
+                        .padding(.horizontal)
                 }
                 
                 // Glass Container für Missionen
@@ -67,6 +104,32 @@ struct ModernHomeView: View {
                 Spacer(minLength: 100)
             }
             .padding(.horizontal, 20)
+        }
+        // Daten beim Start laden
+        .onAppear {
+            loadStreakData()
+        }
+        // Pull-to-Refresh Unterstützung
+        .refreshable {
+            loadStreakData()
+        }
+    }
+    
+    func loadStreakData() {
+        isLoadingStreak = true
+        streakError = nil
+        
+        // Verwende GET /current für Dashboard-Anzeige
+        DaystrikeService.shared.fetchCurrentStreak(userId: currentUserId) { result in
+            DispatchQueue.main.async {
+                isLoadingStreak = false
+                switch result {
+                case .success(let data):
+                    self.daystrikeData = data
+                case .failure(let error):
+                    self.streakError = error.localizedDescription
+                }
+            }
         }
     }
 }
