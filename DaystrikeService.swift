@@ -17,7 +17,7 @@ class DaystrikeService {
     static let shared = DaystrikeService()
     
     // TODO: Ersetzen Sie dies durch Ihre echte API-Base-URL
-    private let baseURL = "https://api.yourapp.com" 
+    private let baseURL = "http://192.168.178.94:8000" 
     
     private init() {}
     
