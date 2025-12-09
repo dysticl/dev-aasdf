@@ -29,7 +29,7 @@ struct LiquidGlassView: View {
 
 struct ModernHomeView: View {
     // State für API-Daten
-    @State private var daystrikeData: DaystrikeResponse?
+    @State private var currentStreak: Int = 0 // Geändert zu Int für direkten Zugriff
     @State private var isLoadingStreak = false
     @State private var streakError: String?
     
@@ -58,25 +58,12 @@ struct ModernHomeView: View {
                     // Daystrike Integration: Zeigt Ladezustand oder echten Wert
                     HunterStatBadge(
                         title: "Streak", 
-                        value: isLoadingStreak ? "..." : "\(daystrikeData?.newStreak ?? 0)", 
+                        value: isLoadingStreak ? "..." : "\(currentStreak)", 
                         icon: "flame.fill", 
                         color: .red
                     )
                     
                     HunterStatBadge(title: "XP", value: "85%", icon: "bolt.fill", color: .blue)
-                }
-                
-                // Optional: Longest Streak Anzeige (falls verfügbar)
-                if let longest = daystrikeData?.longestStreak {
-                    HStack {
-                        Image(systemName: "trophy.fill")
-                            .foregroundStyle(.yellow)
-                        Text("Längster Streak: \(longest) Tage")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                        Spacer()
-                    }
-                    .padding(.horizontal, 4)
                 }
                 
                 // Fehlermeldung bei API-Problemen
@@ -124,8 +111,8 @@ struct ModernHomeView: View {
             DispatchQueue.main.async {
                 isLoadingStreak = false
                 switch result {
-                case .success(let data):
-                    self.daystrikeData = data
+                case .success(let streak):
+                    self.currentStreak = streak
                 case .failure(let error):
                     self.streakError = error.localizedDescription
                 }

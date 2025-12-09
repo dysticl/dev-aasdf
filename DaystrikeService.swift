@@ -1,6 +1,6 @@
 import Foundation
 
-// Datenmodell für die API-Antwort
+// Datenmodell für POST /daystrikes/check/{user_id}
 struct DaystrikeResponse: Codable {
     let userId: String
     let allCompleted: Bool
@@ -13,6 +13,13 @@ struct DaystrikeResponse: Codable {
     let longestStreak: Int? // Optional, falls vom Backend unterstützt
 }
 
+// NEU: Datenmodell für GET /daystrikes/current/{user_id}
+struct CurrentStreakResponse: Codable {
+    let found: Bool
+    let current_streak: Int
+    let last_streak_date: String?
+}
+
 class DaystrikeService {
     static let shared = DaystrikeService()
     
@@ -21,8 +28,8 @@ class DaystrikeService {
     
     private init() {}
     
-    /// GET /daystrikes/current/{user_id} – Ruft den aktuellen Streak für das Dashboard ab
-    func fetchCurrentStreak(userId: String, completion: @escaping (Result<DaystrikeResponse, Error>) -> Void) {
+    /// GET /daystrikes/current/{user_id} – Ruft den aktuellen Streak unabhängig vom Leveling ab
+    func fetchCurrentStreak(userId: String, completion: @escaping (Result<Int, Error>) -> Void) {
         guard let url = URL(string: "\(baseURL)/daystrikes/current/\(userId)") else {
             completion(.failure(NSError(domain: "Invalid URL", code: -1, userInfo: nil)))
             return
@@ -40,8 +47,8 @@ class DaystrikeService {
             }
             
             do {
-                let response = try JSONDecoder().decode(DaystrikeResponse.self, from: data)
-                completion(.success(response))
+                let response = try JSONDecoder().decode(CurrentStreakResponse.self, from: data)
+                completion(.success(response.current_streak))
             } catch {
                 completion(.failure(error))
             }
