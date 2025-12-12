@@ -422,8 +422,6 @@ class APIService {
         // If 'get' appends baseURL, we should only pass "/artifacts?...".
         // Let's assume 'get' implementation handles full URLs or paths.
         // Actually, looking at previous usages, 'get' takes "endpoint".
-        // Let's conform to the existing 'get' helper usage which likely takes a full URL string given previous usage:
-        // let endpoint = "\(baseURL)/intelligence/today"
         // so we pass the full URL string.
 
         return try await get(endpoint: url.absoluteString, authenticated: true)
@@ -594,8 +592,8 @@ class APIService {
     // MARK: - Reward System (Wish Pool)
 
     /// Fetch all wishes for the current user
-    func fetchWishes() async throws -> WishListResponse {
-        let endpoint = "\(baseURL)/api/v1/wishes"
+    func fetchWishes(userId: String) async throws -> WishListResponse {
+        let endpoint = "\(baseURL)/api/v1/wishes?user_id=\(userId)"
         return try await get(endpoint: endpoint, authenticated: true)
     }
 
@@ -606,8 +604,8 @@ class APIService {
     }
 
     /// Create a new wish
-    func createWish(_ wish: WishCreateRequest) async throws -> WishResponse {
-        let endpoint = "\(baseURL)/api/v1/wishes"
+    func createWish(_ wish: WishCreateRequest, userId: String) async throws -> WishResponse {
+        let endpoint = "\(baseURL)/api/v1/wishes?user_id=\(userId)"
         return try await post(endpoint: endpoint, body: wish, authenticated: true)
     }
 
@@ -619,8 +617,8 @@ class APIService {
     }
 
     /// Delete a wish
-    func deleteWish(wishId: String) async throws -> WishDeleteResponse {
-        let endpoint = "\(baseURL)/api/v1/wishes/\(wishId)"
+    func deleteWish(wishId: String, userId: String) async throws -> WishDeleteResponse {
+        let endpoint = "\(baseURL)/api/v1/wishes/\(wishId)?user_id=\(userId)"
         return try await delete(endpoint: endpoint, authenticated: true)
     }
 
@@ -633,7 +631,7 @@ class APIService {
         activityType: ActivityType,
         executionId: String
     ) async throws -> ActivityCompletedResponse {
-        let endpoint = "\(baseURL)/api/v1/reward-engine/activity-completed"
+        let endpoint = "\(baseURL)/api/v1/reward-engine/activity-completed?user_id=\(userId)"
         let body = ActivityCompletedRequest(
             userId: userId,
             activityId: activityId,
@@ -645,7 +643,7 @@ class APIService {
 
     /// Claim a reward through the reward engine (full calculation)
     func claimRewardEngine(wishId: String, userId: String, satisfactionScore: Double) async throws -> RewardClaimResponse {
-        let endpoint = "\(baseURL)/api/v1/reward-engine/rewards/\(wishId)/claim"
+        let endpoint = "\(baseURL)/api/v1/reward-engine/rewards/\(wishId)/claim?user_id=\(userId)"
         let body = RewardClaimRequest(userId: userId, satisfactionScore: satisfactionScore)
         return try await post(endpoint: endpoint, body: body, authenticated: true)
     }
@@ -656,7 +654,7 @@ class APIService {
         activityId: String,
         activityType: ActivityType
     ) async throws -> ActivityMissedResponse {
-        let endpoint = "\(baseURL)/api/v1/reward-engine/activity-missed"
+        let endpoint = "\(baseURL)/api/v1/reward-engine/activity-missed?user_id=\(userId)"
         let body = ActivityMissedRequest(
             userId: userId,
             activityId: activityId,

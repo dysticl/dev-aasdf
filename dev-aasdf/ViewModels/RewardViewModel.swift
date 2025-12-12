@@ -30,6 +30,7 @@ class RewardViewModel: ObservableObject {
     @Published var lastClaimResponse: RewardClaimResponse?
 
     private let apiService = APIService.shared
+    private var cachedUserId: String?
 
     // MARK: - Computed Properties
 
@@ -86,11 +87,63 @@ class RewardViewModel: ObservableObject {
         engineHealth?.isHealthy ?? false
     }
 
+    // MARK: - Helpers
+
+    private func getCurrentUserId() -> String? {
+        // Try multiple possible keys for user ID
+        return UserDefaults.standard.string(forKey: "user_id")
+            ?? UserDefaults.standard.string(forKey: "userId")
+            ?? UserDefaults.standard.string(forKey: "current_user_id")
+    }
+
+    private func showErrorMessage(_ message: String) {
+        errorMessage = message
+        showError = true
+
+        // Auto-dismiss after 3 seconds
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+            self.showError = false
+        }
+    }
+
+    private func showSuccessMessage(_ message: String) {
+        successMessage = message
+        showSuccess = true
+
+        // Auto-dismiss after 2 seconds
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+            self.showSuccess = false
+        }
+    }
+
+    private func ensureUserId() async -> String? {
+        if let id = cachedUserId { return id }
+        if let id = getCurrentUserId() {
+            cachedUserId = id
+            return id
+        }
+        // Fallback: ask backend for current user and cache it
+        do {
+            let me = try await apiService.getCurrentUser()
+            let id = me.id
+            cachedUserId = id
+            // Persist for future launches
+            UserDefaults.standard.set(id, forKey: "user_id")
+            return id
+        } catch {
+            print("Failed to fetch current user for userId: \(error)")
+            return nil
+        }
+    }
+
     // MARK: - Data Loading
 
     func loadAllData() async {
         isLoading = true
         errorMessage = nil
+
+        // Ensure we have a userId before parallel loads
+        _ = await ensureUserId()
 
         await withTaskGroup(of: Void.self) { group in
             group.addTask { await self.loadWishes() }
@@ -103,18 +156,20 @@ class RewardViewModel: ObservableObject {
 
     func loadWishes() async {
         do {
-            let response = try await apiService.fetchWishes()
+            guard let userId = await ensureUserId() else {
+                print("No user ID available for wishes")
+                return
+            }
+            let response = try await apiService.fetchWishes(userId: userId)
             self.wishes = response.wishes
         } catch {
             print("Failed to load wishes: \(error)")
-            // Don't show error for wishes, might just be empty
         }
     }
 
     func loadUserProfile() async {
         do {
-            // First get user ID from stored data or auth
-            guard let userId = getCurrentUserId() else {
+            guard let userId = await ensureUserId() else {
                 print("No user ID available for reward profile")
                 return
             }
@@ -122,7 +177,6 @@ class RewardViewModel: ObservableObject {
             self.userProfile = profile
         } catch {
             print("Failed to load reward user profile: \(error)")
-            // Non-critical, don't block UI
         }
     }
 
@@ -223,7 +277,11 @@ class RewardViewModel: ObservableObject {
         )
 
         do {
-            let newWish = try await apiService.createWish(request)
+            guard let userId = await ensureUserId() else {
+                showErrorMessage("User not authenticated.")
+                return
+            }
+            let newWish = try await apiService.createWish(request, userId: userId)
             wishes.append(newWish)
             showSuccessMessage("Created new wish: \(newWish.title)")
         } catch {
@@ -235,40 +293,15 @@ class RewardViewModel: ObservableObject {
 
     func deleteWish(_ wish: WishResponse) async {
         do {
-            _ = try await apiService.deleteWish(wishId: wish.wishId)
+            guard let userId = await ensureUserId() else {
+                showErrorMessage("User not authenticated.")
+                return
+            }
+            _ = try await apiService.deleteWish(wishId: wish.wishId, userId: userId)
             wishes.removeAll { $0.wishId == wish.wishId }
             showSuccessMessage("Deleted wish: \(wish.title)")
         } catch {
             showErrorMessage("Failed to delete wish: \(error.localizedDescription)")
-        }
-    }
-
-    // MARK: - Helpers
-
-    private func getCurrentUserId() -> String? {
-        // Try multiple possible keys for user ID
-        return UserDefaults.standard.string(forKey: "user_id")
-            ?? UserDefaults.standard.string(forKey: "userId")
-            ?? UserDefaults.standard.string(forKey: "current_user_id")
-    }
-
-    private func showErrorMessage(_ message: String) {
-        errorMessage = message
-        showError = true
-
-        // Auto-dismiss after 3 seconds
-        DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
-            self.showError = false
-        }
-    }
-
-    private func showSuccessMessage(_ message: String) {
-        successMessage = message
-        showSuccess = true
-
-        // Auto-dismiss after 2 seconds
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-            self.showSuccess = false
         }
     }
 }
@@ -387,3 +420,4 @@ extension RewardViewModel {
         return vm
     }
 }
+

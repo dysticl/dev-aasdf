@@ -681,7 +681,7 @@ public struct RewardUserProfileResponse: Codable {
 
 public struct RewardEngineHealthResponse: Codable {
     public let status: String
-    public let services: [String: Bool]?
+    public let services: [String: String]?
     public let message: String
 
     public var isHealthy: Bool {
@@ -700,3 +700,4 @@ public struct WishDeleteResponse: Codable {
         case wishId = "wish_id"
     }
 }
+
