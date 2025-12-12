@@ -102,75 +102,10 @@ struct ArtifactDetailView: View {
                         }
 
                         // MARK: - Timing Section
-                        if let deadlineStr = artifact.deadline,
-                            let deadline = deadlineStr.toISO8601Date()
-                        {
-                            ArtifactGlassContainer {
-                                VStack(alignment: .leading, spacing: 12) {
-                                    HStack {
-                                        Label("Mission Timer", systemImage: "clock.fill")
-                                            .font(.headline)
-                                            .foregroundColor(SoloColors.neonBlue)
-
-                                        Spacer()
-
-                                        if artifact.status == "in_progress" {
-                                            CountdownTimerView(
-                                                deadline: deadline,
-                                                fontSize: .system(size: 17, weight: .bold),
-                                                showIcon: false)
-                                        } else if artifact.status == "pending" {
-                                            Text("Scheduled")
-                                                .font(.subheadline)
-                                                .foregroundColor(.gray)
-                                        } else {
-                                            Text(artifact.status.capitalized)
-                                                .font(.subheadline)
-                                                .foregroundStyle(
-                                                    StatusBadge(status: artifact.status).color)
-                                        }
-                                    }
-
-                                    Divider().background(Color.white.opacity(0.1))
-
-                                    HStack {
-                                        VStack(alignment: .leading) {
-                                            Text("DEADLINE")
-                                                .font(.caption)
-                                                .fontWeight(.bold)
-                                                .foregroundColor(.gray)
-                                            Text(
-                                                deadline.formatted(
-                                                    date: .abbreviated, time: .shortened)
-                                            )
-                                            .foregroundColor(.white)
-                                        }
-
-                                        Spacer()
-
-                                        if let createdAt = artifact.createdAt.toISO8601Date() {
-                                            VStack(alignment: .trailing) {
-                                                Text("CREATED")
-                                                    .font(.caption)
-                                                    .fontWeight(.bold)
-                                                    .foregroundColor(.gray)
-                                                Text(
-                                                    createdAt.formatted(
-                                                        date: .abbreviated, time: .shortened)
-                                                )
-                                                .foregroundColor(.white)
-                                            }
-                                        }
-                                    }
-                                }
-                                .padding()
-                            }
-                        }
-
-                        // MARK: - Timing Section
-                        if let deadlineStr = artifact.deadline,
-                            let deadline = deadlineStr.toISO8601Date()
-                        {
+                        let activeDeadline =
+                            viewModel.deadlines[artifact.artifactId]?.deadline?.toISO8601Date()
+                            ?? artifact.deadline?.toISO8601Date()
+                        if let deadline = activeDeadline {
                             ArtifactGlassContainer {
                                 VStack(alignment: .leading, spacing: 12) {
                                     HStack {

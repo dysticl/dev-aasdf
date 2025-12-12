@@ -13,6 +13,7 @@ class ArtifactsViewModel: ObservableObject {
     @Published var artifacts: [Artifact] = []
     @Published var categories: [ArtifactCategory] = []
     @Published var selectedArtifact: ArtifactDetail?
+    @Published var deadlines: [String: ArtifactDeadlineResponse] = [:]
 
     // UI State
     @Published var isLoading = false
@@ -102,11 +103,34 @@ class ArtifactsViewModel: ObservableObject {
         do {
             let detail = try await apiService.fetchArtifactDetail(artifactId: artifactId)
             self.selectedArtifact = detail
+            // Fetch deadline too for accurate timer
+            await fetchDeadline(artifactId: artifactId)
         } catch {
             errorMessage = error.localizedDescription
             showError = true
         }
         isLoading = false
+    }
+
+    func fetchDeadline(artifactId: String) async {
+        do {
+            let response = try await apiService.getArtifactDeadline(artifactId: artifactId)
+            deadlines[artifactId] = response
+        } catch {
+            print("Failed to fetch deadline for \(artifactId): \(error.localizedDescription)")
+            // Determine if we should treat it as 404 (= no deadline) or error
+        }
+    }
+
+    func refreshDeadlines() async {
+        let activeArtifacts = artifacts.filter { $0.status == "in_progress" }
+        await withTaskGroup(of: Void.self) { group in
+            for artifact in activeArtifacts {
+                group.addTask {
+                    await self.fetchDeadline(artifactId: artifact.artifactId)
+                }
+            }
+        }
     }
 
     func startArtifact(artifactId: String) async {

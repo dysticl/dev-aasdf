@@ -143,7 +143,11 @@ struct StatusWindowView: View {
                                     endPoint: .trailing
                                 )
                             )
-                            .frame(width: geometry.size.width * viewModel.xpProgress, height: 12)
+                            .frame(width: {
+                                let raw = geometry.size.width * viewModel.xpProgress
+                                let safe = raw.isFinite ? max(0, raw) : 0
+                                return safe
+                            }(), height: 12)
                             .animation(.spring(response: 0.5), value: viewModel.xpProgress)
                     }
                 }
@@ -408,7 +412,11 @@ struct DimensionProgressRow: View {
 
                     Capsule()
                         .fill(dimension.color)
-                        .frame(width: geometry.size.width * dimension.progressRatio, height: 6)
+                        .frame(width: {
+                            let raw = geometry.size.width * dimension.progressRatio
+                            let safe = raw.isFinite ? max(0, raw) : 0
+                            return safe
+                        }(), height: 6)
                 }
             }
             .frame(height: 6)

@@ -33,6 +33,7 @@ struct HomeView: View {
                     .padding(.bottom, 40)
                 }
                 .refreshable {
+                    await viewModel.refreshDeadlines()  // Prioritize checking deadlines
                     await viewModel.fetchArtifacts()
                     await levelingVM.loadUserStats()
                     await levelingVM.loadCurrentDaystrike()
@@ -56,6 +57,7 @@ struct HomeView: View {
         .task {
             await viewModel.fetchCategories()
             await viewModel.fetchArtifacts()
+            await viewModel.refreshDeadlines()  // Refresh deadlines immediately
             await levelingVM.loadUserStats()
             await levelingVM.loadCurrentDaystrike()
         }
