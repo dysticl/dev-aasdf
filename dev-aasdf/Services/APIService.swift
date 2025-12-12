@@ -129,7 +129,8 @@ struct DaystrikeCurrentResponse: Decodable {
         } else {
             throw DecodingError.keyNotFound(
                 CodingKeys.currentStreak,
-                DecodingError.Context(codingPath: decoder.codingPath, debugDescription: "No current streak key found")
+                DecodingError.Context(
+                    codingPath: decoder.codingPath, debugDescription: "No current streak key found")
             )
         }
     }
@@ -376,7 +377,8 @@ class APIService {
 
     func fetchCurrentDaystrike(userId: String) async throws -> Int {
         let endpoint = "\(baseURL)/daystrikes/current/\(userId)"
-        let response: DaystrikeCurrentResponse = try await get(endpoint: endpoint, authenticated: true)
+        let response: DaystrikeCurrentResponse = try await get(
+            endpoint: endpoint, authenticated: true)
         return response.currentStreak
     }
 
@@ -453,6 +455,11 @@ class APIService {
 
     func fetchArtifactDetail(artifactId: String) async throws -> ArtifactDetail {
         let endpoint = "\(baseURL)/artifacts/\(artifactId)"
+        return try await get(endpoint: endpoint, authenticated: true)
+    }
+
+    func getArtifactDeadline(artifactId: String) async throws -> ArtifactDeadlineResponse {
+        let endpoint = "\(baseURL)/artifacts/\(artifactId)/deadline"
         return try await get(endpoint: endpoint, authenticated: true)
     }
 
@@ -610,7 +617,9 @@ class APIService {
     }
 
     /// Claim a wish (simple PUT endpoint)
-    func claimWish(wishId: String, satisfactionScore: Double) async throws -> WishClaimSimpleResponse {
+    func claimWish(wishId: String, satisfactionScore: Double) async throws
+        -> WishClaimSimpleResponse
+    {
         let endpoint = "\(baseURL)/api/v1/wishes/\(wishId)/claim"
         let body = WishClaimUpdate(satisfactionScore: satisfactionScore)
         return try await put(endpoint: endpoint, body: body, authenticated: true)
@@ -642,7 +651,9 @@ class APIService {
     }
 
     /// Claim a reward through the reward engine (full calculation)
-    func claimRewardEngine(wishId: String, userId: String, satisfactionScore: Double) async throws -> RewardClaimResponse {
+    func claimRewardEngine(wishId: String, userId: String, satisfactionScore: Double) async throws
+        -> RewardClaimResponse
+    {
         let endpoint = "\(baseURL)/api/v1/reward-engine/rewards/\(wishId)/claim?user_id=\(userId)"
         let body = RewardClaimRequest(userId: userId, satisfactionScore: satisfactionScore)
         return try await post(endpoint: endpoint, body: body, authenticated: true)
@@ -884,4 +895,3 @@ extension Data {
         }
     }
 }
-

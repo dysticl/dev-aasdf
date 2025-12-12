@@ -72,7 +72,7 @@ struct HomeView: View {
     // MARK: - Header Section
 
     private var headerSection: some View {
-        HStack {
+        HStack(alignment: .top) {  // Align top for better layout with countdown
             VStack(alignment: .leading, spacing: 4) {
                 Text("Willkommen, Hunter")
                     .font(.system(size: 28, weight: .bold))
@@ -81,6 +81,34 @@ struct HomeView: View {
                 Text("Du hast \(viewModel.pendingCount) offene Aufgaben")
                     .font(.system(size: 15))
                     .foregroundStyle(Color.shadowTextSecondary)
+
+                // GLOBAL COUNTDOWN
+                if let nearest = nearestInProgressArtifact,
+                    let deadline = nearest.deadline?.toISO8601Date()
+                {
+                    HStack(spacing: 8) {
+                        Image(systemName: "flame.fill")
+                            .foregroundColor(SoloColors.dangerRed)
+                            .font(.system(size: 12))
+
+                        Text("Deadline: \(nearest.taskName)")
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundColor(SoloColors.textPrimary)
+                            .lineLimit(1)
+
+                        CountdownTimerView(
+                            deadline: deadline, fontSize: .system(size: 12), showIcon: false)
+                    }
+                    .padding(.vertical, 4)
+                    .padding(.horizontal, 8)
+                    .background(
+                        Capsule()
+                            .fill(SoloColors.cardBackground.opacity(0.8))
+                            .overlay(
+                                Capsule().stroke(SoloColors.dangerRed.opacity(0.3), lineWidth: 1))
+                    )
+                    .padding(.top, 4)
+                }
             }
 
             Spacer()
@@ -102,6 +130,19 @@ struct HomeView: View {
         }
     }
 
+    private var nearestInProgressArtifact: Artifact? {
+        viewModel.artifacts
+            .filter { $0.status == "in_progress" }
+            .compactMap { artifact -> (Artifact, Date)? in
+                guard let deadlineStr = artifact.deadline,
+                    let date = deadlineStr.toISO8601Date()
+                else { return nil }
+                return (artifact, date)
+            }
+            .sorted { $0.1 < $1.1 }
+            .first?.0
+    }
+
     // MARK: - Stats Overview
 
     private var statsOverview: some View {
@@ -114,7 +155,8 @@ struct HomeView: View {
                 color: SoloColors.successGreen
             )
             StatMiniCard(
-                title: "LEVEL", value: "\(levelingVM.level)", icon: "star.fill", color: SoloColors.neonViolet)
+                title: "LEVEL", value: "\(levelingVM.level)", icon: "star.fill",
+                color: SoloColors.neonViolet)
         }
     }
 
@@ -251,6 +293,24 @@ struct LiquidGlassArtifactCard: View {
                             .font(.system(size: 13, weight: .bold))
                             .foregroundStyle(LiquidGlassGradients.xpGold)
                     }
+                }
+
+                // IN PROGRESS COUNTDOWN
+                if artifact.status == "in_progress", let deadlineStr = artifact.deadline,
+                    let deadline = deadlineStr.toISO8601Date()
+                {
+                    HStack(spacing: 4) {
+                        Image(systemName: "timer")
+                            .font(.system(size: 12))
+                            .foregroundColor(SoloColors.neonBlue)
+
+                        CountdownTimerView(
+                            deadline: deadline, fontSize: .caption, showIcon: false, isCompact: true
+                        )
+                    }
+                    .padding(.top, 2)
+                } else if artifact.status == "pending", artifact.deadline == nil {
+                    // Optional: Show "No Deadline" if desired, but countdown is priority
                 }
             }
         }

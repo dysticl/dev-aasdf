@@ -5,6 +5,8 @@
 //  Created by Daniel Kasanzew on 06.12.25.
 //
 
+import QuickLook
+import SafariServices
 import SwiftUI
 
 struct ArtifactDetailView: View {
@@ -94,6 +96,138 @@ struct ArtifactDetailView: View {
                                         .font(.caption)
                                         .foregroundColor(.gray)
                                         .padding(.top, 8)
+                                }
+                                .padding()
+                            }
+                        }
+
+                        // MARK: - Timing Section
+                        if let deadlineStr = artifact.deadline,
+                            let deadline = deadlineStr.toISO8601Date()
+                        {
+                            ArtifactGlassContainer {
+                                VStack(alignment: .leading, spacing: 12) {
+                                    HStack {
+                                        Label("Mission Timer", systemImage: "clock.fill")
+                                            .font(.headline)
+                                            .foregroundColor(SoloColors.neonBlue)
+
+                                        Spacer()
+
+                                        if artifact.status == "in_progress" {
+                                            CountdownTimerView(
+                                                deadline: deadline,
+                                                fontSize: .system(size: 17, weight: .bold),
+                                                showIcon: false)
+                                        } else if artifact.status == "pending" {
+                                            Text("Scheduled")
+                                                .font(.subheadline)
+                                                .foregroundColor(.gray)
+                                        } else {
+                                            Text(artifact.status.capitalized)
+                                                .font(.subheadline)
+                                                .foregroundStyle(
+                                                    StatusBadge(status: artifact.status).color)
+                                        }
+                                    }
+
+                                    Divider().background(Color.white.opacity(0.1))
+
+                                    HStack {
+                                        VStack(alignment: .leading) {
+                                            Text("DEADLINE")
+                                                .font(.caption)
+                                                .fontWeight(.bold)
+                                                .foregroundColor(.gray)
+                                            Text(
+                                                deadline.formatted(
+                                                    date: .abbreviated, time: .shortened)
+                                            )
+                                            .foregroundColor(.white)
+                                        }
+
+                                        Spacer()
+
+                                        if let createdAt = artifact.createdAt.toISO8601Date() {
+                                            VStack(alignment: .trailing) {
+                                                Text("CREATED")
+                                                    .font(.caption)
+                                                    .fontWeight(.bold)
+                                                    .foregroundColor(.gray)
+                                                Text(
+                                                    createdAt.formatted(
+                                                        date: .abbreviated, time: .shortened)
+                                                )
+                                                .foregroundColor(.white)
+                                            }
+                                        }
+                                    }
+                                }
+                                .padding()
+                            }
+                        }
+
+                        // MARK: - Timing Section
+                        if let deadlineStr = artifact.deadline,
+                            let deadline = deadlineStr.toISO8601Date()
+                        {
+                            ArtifactGlassContainer {
+                                VStack(alignment: .leading, spacing: 12) {
+                                    HStack {
+                                        Label("Mission Timer", systemImage: "clock.fill")
+                                            .font(.headline)
+                                            .foregroundColor(SoloColors.neonBlue)
+
+                                        Spacer()
+
+                                        if artifact.status == "in_progress" {
+                                            CountdownTimerView(
+                                                deadline: deadline,
+                                                fontSize: .system(size: 17, weight: .bold),
+                                                showIcon: false)
+                                        } else if artifact.status == "pending" {
+                                            Text("Scheduled")
+                                                .font(.subheadline)
+                                                .foregroundColor(.gray)
+                                        } else {
+                                            Text(artifact.status.capitalized)
+                                                .font(.subheadline)
+                                                .foregroundStyle(
+                                                    StatusBadge(status: artifact.status).color)
+                                        }
+                                    }
+
+                                    Divider().background(Color.white.opacity(0.1))
+
+                                    HStack {
+                                        VStack(alignment: .leading) {
+                                            Text("DEADLINE")
+                                                .font(.caption)
+                                                .fontWeight(.bold)
+                                                .foregroundColor(.gray)
+                                            Text(
+                                                deadline.formatted(
+                                                    date: .abbreviated, time: .shortened)
+                                            )
+                                            .foregroundColor(.white)
+                                        }
+
+                                        Spacer()
+
+                                        if let createdAt = artifact.createdAt.toISO8601Date() {
+                                            VStack(alignment: .trailing) {
+                                                Text("CREATED")
+                                                    .font(.caption)
+                                                    .fontWeight(.bold)
+                                                    .foregroundColor(.gray)
+                                                Text(
+                                                    createdAt.formatted(
+                                                        date: .abbreviated, time: .shortened)
+                                                )
+                                                .foregroundColor(.white)
+                                            }
+                                        }
+                                    }
                                 }
                                 .padding()
                             }
@@ -389,9 +523,6 @@ extension CompletionResponse: Identifiable {
     public var id: String { artifactId }
 }
 
-import QuickLook
-import SafariServices
-
 struct ProofPreview: View {
     let url: URL
     let mimeType: String
@@ -409,10 +540,8 @@ struct ProofPreview: View {
 
     private func supportsQuickLook(mimeType: String) -> Bool {
         // Common types supported by QL
-        return mimeType.starts(with: "image/") ||
-               mimeType == "application/pdf" ||
-               mimeType.starts(with: "video/") ||
-               mimeType.starts(with: "audio/")
+        return mimeType.starts(with: "image/") || mimeType == "application/pdf"
+            || mimeType.starts(with: "video/") || mimeType.starts(with: "audio/")
     }
 }
 
@@ -442,7 +571,9 @@ struct QLPreviewControllerRepresentable: UIViewControllerRepresentable {
         }
 
         func numberOfPreviewItems(in controller: QLPreviewController) -> Int { 1 }
-        func previewController(_ controller: QLPreviewController, previewItemAt index: Int) -> QLPreviewItem {
+        func previewController(_ controller: QLPreviewController, previewItemAt index: Int)
+            -> QLPreviewItem
+        {
             return url as QLPreviewItem
         }
     }

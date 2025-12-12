@@ -31,6 +31,19 @@ public struct ArtifactCategory: Codable, Identifiable, Hashable {
     }
 }
 
+public struct ArtifactDeadlineResponse: Codable {
+    public let deadline: String?
+    public let now: String
+    public let remainingSeconds: Double?
+    public let isOverdue: Bool
+
+    enum CodingKeys: String, CodingKey {
+        case deadline, now
+        case remainingSeconds = "remaining_seconds"
+        case isOverdue = "is_overdue"
+    }
+}
+
 public struct CategoriesResponse: Codable {
     public let categories: [ArtifactCategory]
 
