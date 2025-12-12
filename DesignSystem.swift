@@ -28,6 +28,8 @@ enum DesignSystem {
         static let sm: CGFloat = 8
         static let standard: CGFloat = 16
         static let lg: CGFloat = 20
+        static let xl: CGFloat = 28
+        static let xxl: CGFloat = 32
         static let section: CGFloat = 24
         static let element: CGFloat = 12
     }
@@ -38,6 +40,13 @@ enum DesignSystem {
         static let container: CGFloat = 24 // iOS 26 Standard Container
         static let element: CGFloat = 16   // Buttons/Inputs
         static let touch: CGFloat = 44     // Touch Targets
+    }
+
+    enum CornerRadius {
+        static let small: CGFloat = 8
+        static let medium: CGFloat = 16
+        static let large: CGFloat = 24
+        static let extraLarge: CGFloat = 32
     }
 }
 

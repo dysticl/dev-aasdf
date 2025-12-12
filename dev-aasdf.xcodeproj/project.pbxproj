@@ -61,15 +61,11 @@
 		};
 		65F3E1602EE0EA5C002909B5 /* dev-aasdfTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-			);
 			path = "dev-aasdfTests";
 			sourceTree = "<group>";
 		};
 		65F3E16A2EE0EA5C002909B5 /* dev-aasdfUITests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-			);
 			path = "dev-aasdfUITests";
 			sourceTree = "<group>";
 		};
@@ -308,9 +304,13 @@
 			inputFileListPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-dev-aasdf/Pods-dev-aasdf-frameworks-${CONFIGURATION}-input-files.xcfilelist",
 			);
+			inputPaths = (
+			);
 			name = "[CP] Embed Pods Frameworks";
 			outputFileListPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-dev-aasdf/Pods-dev-aasdf-frameworks-${CONFIGURATION}-output-files.xcfilelist",
+			);
+			outputPaths = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;

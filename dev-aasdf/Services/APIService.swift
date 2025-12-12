@@ -105,6 +105,36 @@ struct ConnectRequest: Codable {
     }
 }
 
+struct DaystrikeCurrentResponse: Decodable {
+    let currentStreak: Int
+
+    enum CodingKeys: String, CodingKey {
+        case currentStreak = "current_streak"
+        case current = "current"
+        case streak = "streak"
+    }
+
+    init(currentStreak: Int) {
+        self.currentStreak = currentStreak
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        if let value = try container.decodeIfPresent(Int.self, forKey: .currentStreak) {
+            self.currentStreak = value
+        } else if let value = try container.decodeIfPresent(Int.self, forKey: .current) {
+            self.currentStreak = value
+        } else if let value = try container.decodeIfPresent(Int.self, forKey: .streak) {
+            self.currentStreak = value
+        } else {
+            throw DecodingError.keyNotFound(
+                CodingKeys.currentStreak,
+                DecodingError.Context(codingPath: decoder.codingPath, debugDescription: "No current streak key found")
+            )
+        }
+    }
+}
+
 // MARK: - API Error
 
 enum APIError: LocalizedError {
@@ -342,6 +372,14 @@ class APIService {
         return (response.level, response.rank)
     }
 
+    // MARK: - Daystrikes
+
+    func fetchCurrentDaystrike(userId: String) async throws -> Int {
+        let endpoint = "\(baseURL)/daystrikes/current/\(userId)"
+        let response: DaystrikeCurrentResponse = try await get(endpoint: endpoint, authenticated: true)
+        return response.currentStreak
+    }
+
     // MARK: - Artifacts
 
     func getCategories() async throws -> [ArtifactCategory] {
@@ -553,6 +591,98 @@ class APIService {
         return try JSONDecoder().decode(CancelArtifactResponse.self, from: data)
     }
 
+    // MARK: - Reward System (Wish Pool)
+
+    /// Fetch all wishes for the current user
+    func fetchWishes() async throws -> WishListResponse {
+        let endpoint = "\(baseURL)/api/v1/wishes"
+        return try await get(endpoint: endpoint, authenticated: true)
+    }
+
+    /// Get a single wish by ID
+    func fetchWish(wishId: String) async throws -> WishResponse {
+        let endpoint = "\(baseURL)/api/v1/wishes/\(wishId)"
+        return try await get(endpoint: endpoint, authenticated: true)
+    }
+
+    /// Create a new wish
+    func createWish(_ wish: WishCreateRequest) async throws -> WishResponse {
+        let endpoint = "\(baseURL)/api/v1/wishes"
+        return try await post(endpoint: endpoint, body: wish, authenticated: true)
+    }
+
+    /// Claim a wish (simple PUT endpoint)
+    func claimWish(wishId: String, satisfactionScore: Double) async throws -> WishClaimSimpleResponse {
+        let endpoint = "\(baseURL)/api/v1/wishes/\(wishId)/claim"
+        let body = WishClaimUpdate(satisfactionScore: satisfactionScore)
+        return try await put(endpoint: endpoint, body: body, authenticated: true)
+    }
+
+    /// Delete a wish
+    func deleteWish(wishId: String) async throws -> WishDeleteResponse {
+        let endpoint = "\(baseURL)/api/v1/wishes/\(wishId)"
+        return try await delete(endpoint: endpoint, authenticated: true)
+    }
+
+    // MARK: - Reward Engine
+
+    /// Notify reward engine that an activity was completed
+    func postActivityCompleted(
+        userId: String,
+        activityId: String,
+        activityType: ActivityType,
+        executionId: String
+    ) async throws -> ActivityCompletedResponse {
+        let endpoint = "\(baseURL)/api/v1/reward-engine/activity-completed"
+        let body = ActivityCompletedRequest(
+            userId: userId,
+            activityId: activityId,
+            activityType: activityType,
+            executionId: executionId
+        )
+        return try await post(endpoint: endpoint, body: body, authenticated: true)
+    }
+
+    /// Claim a reward through the reward engine (full calculation)
+    func claimRewardEngine(wishId: String, userId: String, satisfactionScore: Double) async throws -> RewardClaimResponse {
+        let endpoint = "\(baseURL)/api/v1/reward-engine/rewards/\(wishId)/claim"
+        let body = RewardClaimRequest(userId: userId, satisfactionScore: satisfactionScore)
+        return try await post(endpoint: endpoint, body: body, authenticated: true)
+    }
+
+    /// Notify reward engine that an activity was missed
+    func postActivityMissed(
+        userId: String,
+        activityId: String,
+        activityType: ActivityType
+    ) async throws -> ActivityMissedResponse {
+        let endpoint = "\(baseURL)/api/v1/reward-engine/activity-missed"
+        let body = ActivityMissedRequest(
+            userId: userId,
+            activityId: activityId,
+            activityType: activityType
+        )
+        return try await post(endpoint: endpoint, body: body, authenticated: true)
+    }
+
+    /// Get reward engine health status
+    func fetchRewardEngineHealth() async throws -> RewardEngineHealthResponse {
+        let endpoint = "\(baseURL)/api/v1/reward-engine/health"
+        return try await get(endpoint: endpoint, authenticated: false)
+    }
+
+    /// Get reward user profile (motivation, receptor, progression)
+    func fetchRewardUserProfile(userId: String) async throws -> RewardUserProfileResponse {
+        let endpoint = "\(baseURL)/users/\(userId)/reward-profile"
+        return try await get(endpoint: endpoint, authenticated: true)
+    }
+
+    /// Get reward state for a specific wish
+    func fetchRewardState(wishId: String) async throws -> RewardStateResponse {
+        let endpoint = "\(baseURL)/api/v1/rewards/\(wishId)/state"
+        return try await get(endpoint: endpoint, authenticated: true)
+    }
+
     // MARK: - Private Methods
 
     private func get<T: Decodable>(endpoint: String, authenticated: Bool = false) async throws -> T
@@ -590,6 +720,46 @@ class APIService {
         }
 
         request.httpBody = try encoder.encode(body)
+
+        return try await execute(request: request)
+    }
+
+    private func put<T: Decodable, B: Encodable>(
+        endpoint: String, body: B, authenticated: Bool = false
+    ) async throws -> T {
+        guard let url = URL(string: endpoint) else {
+            throw APIError.invalidURL
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "PUT"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.timeoutInterval = 30
+
+        if authenticated, let token = KeychainHelper.shared.getToken() {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+
+        request.httpBody = try encoder.encode(body)
+
+        return try await execute(request: request)
+    }
+
+    private func delete<T: Decodable>(
+        endpoint: String, authenticated: Bool = false
+    ) async throws -> T {
+        guard let url = URL(string: endpoint) else {
+            throw APIError.invalidURL
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "DELETE"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.timeoutInterval = 30
+
+        if authenticated, let token = KeychainHelper.shared.getToken() {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
 
         return try await execute(request: request)
     }
@@ -716,3 +886,4 @@ extension Data {
         }
     }
 }
+

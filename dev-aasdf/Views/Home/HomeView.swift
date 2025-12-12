@@ -9,6 +9,7 @@ import SwiftUI
 struct HomeView: View {
     @EnvironmentObject var authViewModel: AuthViewModel
     @StateObject private var viewModel = ArtifactsViewModel()
+    @StateObject private var levelingVM = LevelingViewModel()
     @State private var selectedTab = 0
     @State private var showCreateSheet = false
 
@@ -33,6 +34,8 @@ struct HomeView: View {
                 }
                 .refreshable {
                     await viewModel.fetchArtifacts()
+                    await levelingVM.loadUserStats()
+                    await levelingVM.loadCurrentDaystrike()
                 }
 
                 // Floating Action Button
@@ -53,6 +56,8 @@ struct HomeView: View {
         .task {
             await viewModel.fetchCategories()
             await viewModel.fetchArtifacts()
+            await levelingVM.loadUserStats()
+            await levelingVM.loadCurrentDaystrike()
         }
         .sheet(isPresented: $showCreateSheet) {
             CreateArtifactView(viewModel: viewModel)
@@ -103,9 +108,13 @@ struct HomeView: View {
         HStack(spacing: 12) {
             StatMiniCard(title: "XP HEUTE", value: "+0", icon: "sparkles", color: SoloColors.xpGold)
             StatMiniCard(
-                title: "STREAK", value: "0", icon: "flame.fill", color: SoloColors.successGreen)
+                title: "STREAK",
+                value: "\(levelingVM.currentStreak)",
+                icon: "flame.fill",
+                color: SoloColors.successGreen
+            )
             StatMiniCard(
-                title: "LEVEL", value: "1", icon: "star.fill", color: SoloColors.neonViolet)
+                title: "LEVEL", value: "\(levelingVM.level)", icon: "star.fill", color: SoloColors.neonViolet)
         }
     }
 

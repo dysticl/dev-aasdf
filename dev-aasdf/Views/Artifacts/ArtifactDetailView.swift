@@ -16,6 +16,8 @@ struct ArtifactDetailView: View {
     @State private var showUploadSheet = false
     @State private var showCompletionView = false
     @State private var completionResponse: CompletionResponse?
+    @State private var selectedProof: Proof?
+    @State private var showProofViewer = false
 
     var detail: ArtifactDetail? {
         viewModel.selectedArtifact
@@ -118,18 +120,24 @@ struct ArtifactDetailView: View {
                                     .foregroundColor(.gray)
                                 VStack(spacing: 8) {
                                     ForEach(artifact.proofs) { proof in
-                                        HStack {
-                                            Image(systemName: "doc.text")
-                                                .foregroundColor(.blue)
-                                            Text(proof.filename ?? "Proof File")
-                                                .foregroundColor(.white)
-                                            Spacer()
-                                            Image(systemName: "checkmark.circle.fill")
-                                                .foregroundColor(.green)
+                                        Button {
+                                            self.selectedProof = proof
+                                            self.showProofViewer = true
+                                        } label: {
+                                            HStack {
+                                                Image(systemName: iconName(for: proof.mimeType))
+                                                    .foregroundColor(.blue)
+                                                Text(proof.filename ?? "Proof File")
+                                                    .foregroundColor(.white)
+                                                    .lineLimit(1)
+                                                Spacer()
+                                                Image(systemName: "chevron.right")
+                                                    .foregroundColor(.white.opacity(0.4))
+                                            }
+                                            .padding()
+                                            .background(Material.ultraThinMaterial)
+                                            .cornerRadius(10)
                                         }
-                                        .padding()
-                                        .background(Material.ultraThinMaterial)
-                                        .cornerRadius(10)
                                     }
                                 }
                             }
@@ -167,6 +175,17 @@ struct ArtifactDetailView: View {
         }
         .fullScreenCover(item: $completionResponse) { response in
             ArtifactCompletionView(response: response)
+        }
+        .sheet(isPresented: $showProofViewer) {
+            if let proof = selectedProof, let url = URL(string: proof.downloadUrl) {
+                ProofPreview(url: url, mimeType: proof.mimeType, title: proof.filename ?? "Proof")
+                    .ignoresSafeArea()
+            } else {
+                Text("Unable to load proof")
+                    .foregroundColor(.white)
+                    .padding()
+                    .background(Color.black)
+            }
         }
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
@@ -207,6 +226,14 @@ struct ArtifactDetailView: View {
         default:
             break
         }
+    }
+
+    func iconName(for mime: String) -> String {
+        if mime.starts(with: "image/") { return "photo" }
+        if mime == "application/pdf" { return "doc.richtext" }
+        if mime.starts(with: "video/") { return "video" }
+        if mime.starts(with: "audio/") { return "waveform" }
+        return "doc.text"
     }
 }
 
@@ -360,4 +387,73 @@ struct ActionButton: View {
 // Extension to make CompletionResponse identifiable for FullScreenCover
 extension CompletionResponse: Identifiable {
     public var id: String { artifactId }
+}
+
+import QuickLook
+import SafariServices
+
+struct ProofPreview: View {
+    let url: URL
+    let mimeType: String
+    let title: String
+
+    var body: some View {
+        Group {
+            if supportsQuickLook(mimeType: mimeType) {
+                QLPreviewControllerRepresentable(url: url, title: title)
+            } else {
+                SafariView(url: url)
+            }
+        }
+    }
+
+    private func supportsQuickLook(mimeType: String) -> Bool {
+        // Common types supported by QL
+        return mimeType.starts(with: "image/") ||
+               mimeType == "application/pdf" ||
+               mimeType.starts(with: "video/") ||
+               mimeType.starts(with: "audio/")
+    }
+}
+
+struct QLPreviewControllerRepresentable: UIViewControllerRepresentable {
+    let url: URL
+    let title: String
+
+    func makeUIViewController(context: Context) -> QLPreviewController {
+        let controller = QLPreviewController()
+        controller.dataSource = context.coordinator
+        return controller
+    }
+
+    func updateUIViewController(_ uiViewController: QLPreviewController, context: Context) {}
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(url: url, title: title)
+    }
+
+    class Coordinator: NSObject, QLPreviewControllerDataSource {
+        let url: URL
+        let title: String
+
+        init(url: URL, title: String) {
+            self.url = url
+            self.title = title
+        }
+
+        func numberOfPreviewItems(in controller: QLPreviewController) -> Int { 1 }
+        func previewController(_ controller: QLPreviewController, previewItemAt index: Int) -> QLPreviewItem {
+            return url as QLPreviewItem
+        }
+    }
+}
+
+struct SafariView: UIViewControllerRepresentable {
+    let url: URL
+
+    func makeUIViewController(context: Context) -> SFSafariViewController {
+        SFSafariViewController(url: url)
+    }
+
+    func updateUIViewController(_ uiViewController: SFSafariViewController, context: Context) {}
 }

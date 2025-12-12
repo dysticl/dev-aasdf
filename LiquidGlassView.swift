@@ -29,12 +29,16 @@ struct LiquidGlassView: View {
 
 struct ModernHomeView: View {
     // State für API-Daten
-    @State private var currentStreak: Int = 0 // Geändert zu Int für direkten Zugriff
+    @State private var currentStreak: Int = 0
     @State private var isLoadingStreak = false
     @State private var streakError: String?
     
-    // Placeholder User-ID (sollte aus Ihrem Auth-Service kommen)
-    private let currentUserId = "user_123"
+    // Dynamisches Abrufen der User-ID aus den UserDefaults
+    private var currentUserId: String? {
+        return UserDefaults.standard.string(forKey: "user_id") 
+            ?? UserDefaults.standard.string(forKey: "userId")
+            ?? UserDefaults.standard.string(forKey: "current_user_id")
+    }
 
     var body: some View {
         ScrollView {
@@ -92,7 +96,7 @@ struct ModernHomeView: View {
             }
             .padding(.horizontal, 20)
         }
-        // Daten beim Start laden
+        // Daten beim Start laden (GET Request für Streak)
         .onAppear {
             loadStreakData()
         }
@@ -103,11 +107,16 @@ struct ModernHomeView: View {
     }
     
     func loadStreakData() {
+        guard let userId = currentUserId else {
+            self.streakError = "Nicht eingeloggt"
+            return
+        }
+        
         isLoadingStreak = true
         streakError = nil
         
         // Verwende GET /current für Dashboard-Anzeige
-        DaystrikeService.shared.fetchCurrentStreak(userId: currentUserId) { result in
+        DaystrikeService.shared.fetchCurrentStreak(userId: userId) { result in
             DispatchQueue.main.async {
                 isLoadingStreak = false
                 switch result {
@@ -122,6 +131,15 @@ struct ModernHomeView: View {
 }
 
 struct ModernProfileView: View {
+    // State für Streak im Profil
+    @State private var currentStreak: Int = 0
+    
+    // Dynamisches Abrufen der User-ID
+    private var currentUserId: String? {
+        return UserDefaults.standard.string(forKey: "user_id") 
+            ?? UserDefaults.standard.string(forKey: "userId")
+    }
+
     var body: some View {
         ScrollView {
             VStack(spacing: 24) {
@@ -153,6 +171,9 @@ struct ModernProfileView: View {
                         .foregroundStyle(.white)
                     
                     LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
+                        // NEU: Daystrike Anzeige auch hier
+                        StatDetailCard(label: "Daystrike", value: "\(currentStreak)", color: .red)
+                        
                         StatDetailCard(label: "Stärke", value: "98", color: .red)
                         StatDetailCard(label: "Intelligenz", value: "124", color: .blue)
                         StatDetailCard(label: "Agilität", value: "110", color: .green)
@@ -163,6 +184,22 @@ struct ModernProfileView: View {
                 Spacer(minLength: 100)
             }
             .padding(.horizontal, 20)
+        }
+        .onAppear {
+            // Lädt den Streak separat, unabhängig vom Leveling-Call
+            loadStreakData()
+        }
+    }
+    
+    func loadStreakData() {
+        guard let userId = currentUserId else { return }
+        
+        DaystrikeService.shared.fetchCurrentStreak(userId: userId) { result in
+            DispatchQueue.main.async {
+                if case .success(let streak) = result {
+                    self.currentStreak = streak
+                }
+            }
         }
     }
 }

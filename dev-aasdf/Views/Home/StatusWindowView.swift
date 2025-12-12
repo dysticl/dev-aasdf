@@ -10,7 +10,9 @@ import SwiftUI
 
 struct StatusWindowView: View {
     @StateObject private var viewModel = LevelingViewModel()
+    @StateObject private var rewardViewModel = RewardViewModel()
     @State private var showDimensions = false
+    @State private var showRewards = true
 
     var body: some View {
         ScrollView {
@@ -27,6 +29,9 @@ struct StatusWindowView: View {
                 // Dimension Progress (Expandable)
                 dimensionSection
 
+                // Reward System Section (Expandable)
+                rewardSection
+
                 // Stats Grid
                 statsGridSection
 
@@ -38,9 +43,11 @@ struct StatusWindowView: View {
         .background(Color.shadowBackground)
         .task {
             await viewModel.loadAllData()
+            await rewardViewModel.loadAllData()
         }
         .refreshable {
             await viewModel.refresh()
+            await rewardViewModel.refresh()
         }
         .overlay {
             if viewModel.showLevelUp, let event = viewModel.levelUpEvent {
@@ -48,6 +55,22 @@ struct StatusWindowView: View {
                     viewModel.dismissLevelUp()
                 }
             }
+        }
+        .overlay {
+            // Success/Error toasts for rewards
+            VStack {
+                if rewardViewModel.showSuccess, let message = rewardViewModel.successMessage {
+                    RewardToast(message: message, isSuccess: true)
+                        .transition(.move(edge: .top).combined(with: .opacity))
+                }
+                if rewardViewModel.showError, let message = rewardViewModel.errorMessage {
+                    RewardToast(message: message, isSuccess: false)
+                        .transition(.move(edge: .top).combined(with: .opacity))
+                }
+                Spacer()
+            }
+            .animation(.spring(response: 0.4), value: rewardViewModel.showSuccess)
+            .animation(.spring(response: 0.4), value: rewardViewModel.showError)
         }
     }
 
@@ -207,6 +230,51 @@ struct StatusWindowView: View {
                 .padding(16)
                 .glassEffect(material: .ultraThin, radius: DesignSystem.CornerRadius.medium)
                 .transition(.opacity.combined(with: .move(edge: .top)))
+            }
+        }
+    }
+
+    // MARK: - Reward Section
+
+    private var rewardSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Button {
+                withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                    showRewards.toggle()
+                }
+            } label: {
+                HStack {
+                    HStack(spacing: 6) {
+                        Image(systemName: "sparkles")
+                            .foregroundStyle(RewardColors.accentViolet)
+                        Text("REWARDS")
+                            .font(.caption.weight(.bold))
+                            .foregroundStyle(.secondary)
+                            .tracking(1.5)
+                    }
+                    Spacer()
+
+                    // Claimable badge
+                    if rewardViewModel.claimableWishes.count > 0 {
+                        Text("\(rewardViewModel.claimableWishes.count)")
+                            .font(.caption2.weight(.bold))
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(RewardColors.accentViolet)
+                            .clipShape(Capsule())
+                    }
+
+                    Image(systemName: showRewards ? "chevron.up" : "chevron.down")
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .buttonStyle(.plain)
+
+            if showRewards {
+                RewardDashboardSection(viewModel: rewardViewModel)
+                    .transition(.opacity.combined(with: .move(edge: .top)))
             }
         }
     }
@@ -433,6 +501,32 @@ struct LevelUpOverlay: View {
                 opacity = 1.0
             }
         }
+    }
+}
+
+// MARK: - Reward Toast
+
+struct RewardToast: View {
+    let message: String
+    let isSuccess: Bool
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: isSuccess ? "checkmark.circle.fill" : "exclamationmark.circle.fill")
+                .foregroundStyle(isSuccess ? .green : .red)
+
+            Text(message)
+                .font(.subheadline.weight(.medium))
+                .foregroundStyle(.white)
+                .lineLimit(2)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .background(.ultraThinMaterial)
+        .clipShape(Capsule())
+        .shadow(color: (isSuccess ? Color.green : Color.red).opacity(0.3), radius: 10, x: 0, y: 5)
+        .padding(.horizontal, 20)
+        .padding(.top, 60)
     }
 }
 

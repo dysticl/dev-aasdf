@@ -22,6 +22,8 @@ class LevelingViewModel: ObservableObject {
     @Published var isLoadingLeaderboard = false
     @Published var errorMessage: String?
     @Published var showError = false
+    
+    @Published var daystrikeCurrent: Int?
 
     // Level up animation
     @Published var showLevelUp = false
@@ -72,7 +74,8 @@ class LevelingViewModel: ObservableObject {
     }
 
     var currentStreak: Int {
-        userStats?.currentStreak ?? 0
+        if let ds = daystrikeCurrent { return ds }
+        return userStats?.currentStreak ?? 0
     }
 
     var longestStreak: Int {
@@ -89,6 +92,7 @@ class LevelingViewModel: ObservableObject {
         isLoading = true
         await loadUserStats()
         await loadDimensions()
+        await loadCurrentDaystrike()
         isLoading = false
     }
 
@@ -110,6 +114,25 @@ class LevelingViewModel: ObservableObject {
         } catch {
             print("Failed to load dimensions: \(error)")
             // Don't show error for dimensions, not critical
+        }
+    }
+    
+    func loadCurrentDaystrike() async {
+        do {
+            // Prefer userId from userStats if available
+            if let userId = userStats?.userId {
+                let current = try await apiService.fetchCurrentDaystrike(userId: userId)
+                self.daystrikeCurrent = current
+            } else {
+                // Fallback: try loading stats first to get userId
+                let stats = try await apiService.fetchUserStats()
+                self.userStats = stats
+                let current = try await apiService.fetchCurrentDaystrike(userId: stats.userId)
+                self.daystrikeCurrent = current
+            }
+        } catch {
+            // Silent fail for daystrike; don't show blocking error
+            print("Failed to load current daystrike: \(error)")
         }
     }
 
@@ -255,3 +278,4 @@ extension LevelingViewModel {
         return vm
     }
 }
+
